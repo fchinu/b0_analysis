@@ -1,0 +1,2 @@
+/home/fgrosa/B0/inputs/data/AO2D_LHC23_pass4_skimmed.root
+/home/fgrosa/B0/inputs/data/AO2D_LHC24_pass1_skimmed.root
