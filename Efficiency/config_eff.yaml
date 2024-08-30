@@ -1,0 +1,9 @@
+recoFileNames: ['ML/Application/pt2_6/MC_pT_2_6_ModelApplied.parquet.gzip',
+            'ML/Application/pt6_100/MC_pT_6_100_ModelApplied.parquet.gzip'] # List of parquet files with the ML score
+
+gen:
+  fileNames: ['derived_data_analysis/AnalysisResultsTask_LHC23c1_TrackTunerPtSmear1p5.root']
+  sparseName: 'hf-task-b0-reduced/hPtYGenSig'
+  ptAxis: 0
+
+outputFileName: 'Efficiency/Efficiency.root'
