@@ -1,0 +1,28 @@
+inputs:
+  data: [../inputs/pt2_6/Data_pT_2_6_ModelApplied.parquet.gzip,
+         ../inputs/pt6_100/Data_pT_6_100_ModelApplied.parquet.gzip]
+  mc: [../inputs/pt2_6/MCwBkg_pT_2_6_ModelApplied.parquet.gzip,
+       ../inputs/pt6_100/MCwBkg_pT_6_100_ModelApplied.parquet.gzip]
+
+selections:
+  pt_mins: [2, 4, 6, 8]
+  pt_maxs: [4, 6, 8, 16]
+  bdt_sel: [0.90, 0.90, 0.90, 0.90]
+
+fit_configs:
+  pt_int:
+    activate: true
+    signal_funcs: ["gaussian"]
+    bkg_funcs: ["expo"]
+    mass_limits: [5.00, 5.56]
+    use_bkg_templ: true
+  # below one per pT bin
+  signal_funcs: [["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"]]
+  bkg_funcs: [["expo"], ["expo"], ["expo"], ["expo"]]
+  mass_limits: [[5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56]]
+  use_bkg_templ: [true, true, true, true]
+
+outputs:
+  directory: "."
+  suffix: ""
+
