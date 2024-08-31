@@ -51,17 +51,21 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
     with open(config_file, "r") as yml_cfg:  # pylint: disable=unspecified-encoding
         cfg = yaml.load(yml_cfg, yaml.FullLoader)
 
-    pt_mins = cfg["selections"]["pt_mins"]
-    pt_maxs = cfg["selections"]["pt_maxs"]
+    with open(cfg["cutset_file_name"], "r") as yml_cfg:  # pylint: disable=unspecified-encoding
+        cut_set = yaml.load(yml_cfg, yaml.FullLoader)
+
+    pt_mins = cut_set["pt"]["mins"]
+    pt_maxs = cut_set["pt"]["maxs"]
     pt_lims = pt_mins.copy()
     pt_lims.append(pt_maxs[-1])
-    bdt_cuts = cfg["selections"]["bdt_sel"]
+    bdt_cut_mins = cut_set["ML_output"]["mins"]
+    bdt_cut_maxs = cut_set["ML_output"]["maxs"]
     selection_string = ""
-    for ipt, (pt_min, pt_max, bdt_cut) in enumerate(zip(pt_mins, pt_maxs, bdt_cuts)):
+    for ipt, (pt_min, pt_max, bdt_cut_min, bdt_cut_max) in enumerate(zip(pt_mins, pt_maxs, bdt_cut_mins, bdt_cut_maxs)):
         if ipt == 0:
-            selection_string += f"({pt_min} < fPt < {pt_max} and ML_output > {bdt_cut})"
+            selection_string += f"({pt_min} < fPt < {pt_max} and {bdt_cut_min} < ML_output < {bdt_cut_max})"
         else:
-            selection_string += f" or ({pt_min} < fPt < {pt_max} and ML_output > {bdt_cut})"
+            selection_string += f" or ({pt_min} < fPt < {pt_max} and {bdt_cut_min} < ML_output < {bdt_cut_max})"
 
     # load data
     df = pd.DataFrame()
