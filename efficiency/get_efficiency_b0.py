@@ -212,7 +212,7 @@ def compute_efficiency(config_file_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments')
-    parser.add_argument('config_file_name', metavar='text', default='config_Efficiency')
+    parser.add_argument('config_file_name', metavar='text', default='config_eff.yaml')
     args = parser.parse_args()
 
     compute_efficiency(args.config_file_name)
