@@ -4,10 +4,7 @@ inputs:
   mc: [../inputs/pt2_6/MCwBkg_pT_2_6_ModelApplied.parquet.gzip,
        ../inputs/pt6_100/MCwBkg_pT_6_100_ModelApplied.parquet.gzip]
 
-selections:
-  pt_mins: [2, 4, 6, 8]
-  pt_maxs: [4, 6, 8, 16]
-  bdt_sel: [0.90, 0.90, 0.90, 0.90]
+cutset_file_name: 'config/cutset.yaml'
 
 fit_configs:
   pt_int:
