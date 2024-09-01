@@ -80,7 +80,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
     df_mc.query(selection_string, inplace=True)
 
     df_mc_bkg = df_mc.query("fFlagMcMatchRec == 4")
-    df_mc_sig = df_mc.query("fFlagMcMatchRec == 1")
+    df_mc_sig = df_mc.query("fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1")
 
     # define output file
     outdir = cfg["outputs"]["directory"]
