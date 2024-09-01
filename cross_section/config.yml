@@ -9,3 +9,7 @@ lumi:
   triggers_of_interest: ['fHfBeauty4P']
   h_collisions_path: 'hf-candidate-creator-3prong/hCollisions'
   tvx_cross_section: 59400000000 # pb
+
+br:
+  b0_todminuspi: 0.00251
+  dplus_tokpipi: 0.0938
