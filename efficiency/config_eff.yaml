@@ -1,0 +1,12 @@
+reco_file_names: ['ML/Application/pt2_6/MC_pT_2_6_ModelApplied.parquet.gzip',
+            'ML/Application/pt6_100/MC_pT_6_100_ModelApplied.parquet.gzip'] # List of parquet files with the ML score
+
+gen:
+  file_names: ['derived_data_analysis/AnalysisResultsTask_LHC23c1_TrackTunerPtSmear1p5.root']
+  sparse_name: 'hf-task-b0-reduced/hPtYGenSig'
+  sparse_name_acc: 'hf-task-b0-reduced/hPtYWithProngsInAccepanceGenSig'
+  pt_axis: 0
+
+cutset_file_name: 'config/cutset.yaml'
+
+output_file_name: 'efficiency/efficiency.root'
