@@ -1,0 +1,11 @@
+rawyield_file: fit/outputs/B0_mass.root
+efficiency_file: efficiency/efficiency.root
+output_file: cross_section/cross_section.root
+
+lumi:
+  analysis_results_files: ['inputs/data/AnalysisResults_LHC23_pass4_skimmed.root',
+                          'inputs/data/AnalysisResults_LHC24_pass1_skimmed.root']
+  zorro_folder: 'hf-data-creator-charm-had-pi-reduced/Zorro'
+  triggers_of_interest: ['fHfBeauty4P']
+  h_collisions_path: 'hf-candidate-creator-3prong/hCollisions'
+  tvx_cross_section: 59400000000 # pb
