@@ -10,7 +10,8 @@ common:
 
 train_ml:
   input:
-    file_name: AOD_ReducedB0Workflow_MC.root
+    signal_file_name: AOD_ReducedB0Workflow_MC.root
+    bkg_file_name: AOD_ReducedB0Workflow_RealData.root
 
   pt_bins_limits: null  # to override common pt binning; set to null else
 

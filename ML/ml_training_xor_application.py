@@ -113,7 +113,9 @@ class MlTraining(MlCommon):
         if config_train["pt_bins_limits"] is not None:
             pt_bins_limits = enforce_list(config_train["pt_bins_limits"])
             self.pt_bins = [[a, b] for a, b in zip(pt_bins_limits[:-1], pt_bins_limits[1:])]
-        self.infile_name = config_train["input"]["file_name"]
+        self.sig_infile_name = config_train["input"]["signal_file_name"]
+        self.bkg_infile_name = config_train["input"]["bkg_file_name"] \
+            if config_train["input"]["bkg_file_name"] is not None else self.sig_infile_name
         self.tag = config_train["tag"]
         self.filt_bkg_mass = config_train["filt_bkg_mass"]
 
@@ -180,10 +182,12 @@ class MlTraining(MlCommon):
 
         print("Loading and preparing data files: ...", end="\r")
 
-        hdl = TreeHandler(file_name=self.infile_name, tree_name=self.tree_name, folder_name=self.folder_name)
-
-        hdl_bkg = hdl.get_subset(f"{self.tag} == 0 and {self.filt_bkg_mass}")
-        hdl_sig = hdl.get_subset(f"{self.tag} == 1")
+        hdl_bkg = TreeHandler(
+            file_name=self.bkg_infile_name, tree_name=self.tree_name, folder_name=self.folder_name
+            ).get_subset(f"{self.tag} == 0 and {self.filt_bkg_mass}")
+        hdl_sig = TreeHandler(
+            file_name=self.sig_infile_name, tree_name=self.tree_name, folder_name=self.folder_name
+            ).get_subset(f"{self.tag} == 1")
 
         hdl_bkg.slice_data_frame(self.name_pt_var, self.pt_bins, True)
         hdl_sig.slice_data_frame(self.name_pt_var, self.pt_bins, True)
