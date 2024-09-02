@@ -4,7 +4,7 @@ inputs:
   mc: [../inputs/pt2_6/MCwBkg_pT_2_6_ModelApplied.parquet.gzip,
        ../inputs/pt6_100/MCwBkg_pT_6_100_ModelApplied.parquet.gzip]
 
-cutset_file_name: 'config/cutset.yaml'
+cutset_file_name: '../config/cutset.yaml'
 
 fit_configs:
   pt_int:
@@ -14,10 +14,15 @@ fit_configs:
     mass_limits: [5.00, 5.56]
     use_bkg_templ: true
   # below one per pT bin
-  signal_funcs: [["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"]]
-  bkg_funcs: [["expo"], ["expo"], ["expo"], ["expo"]]
-  mass_limits: [[5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56]]
-  use_bkg_templ: [true, true, true, true]
+  signal_funcs: [["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"]]
+  bkg_funcs: [["expo"], ["expo"], ["expo"], ["expo"], ["expo"]]
+  mass_limits: [[5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56]]
+  use_bkg_templ: [true, true, true, true, true]
+
+plot_style:
+  pt_int:
+    n_bins: 56
+  n_bins: [23, 23, 23, 23, 23]
 
 outputs:
   directory: "."

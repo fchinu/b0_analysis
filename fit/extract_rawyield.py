@@ -94,7 +94,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         # we first fit MC only
         data_hdl_mc = DataHandler(df_mc_sig, var_name="fM",
                                   limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
-                                  nbins=56)
+                                  nbins=cfg["plot_style"]["pt_int"]["n_bins"])
         fitter_mc_ptint = F2MassFitter(data_hdl_mc,
                                        ["doublegaus"],
                                        ["nobkg"],
@@ -108,8 +108,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
                                                 figsize=(8, 8),
                                                 axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
             fig_res = fitter_mc_ptint.plot_raw_residuals(style="ATLAS",
-                                                        figsize=(8, 8),
-                                                        axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                         figsize=(8, 8),
+                                                         axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
 
             fig.savefig(os.path.join(outdir, "B0_mass_ptint_MC.pdf"))
             fig_res.savefig(os.path.join(outdir, "B0_massres_ptint_MC.pdf"))
@@ -117,12 +117,12 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         # then we fit data
         data_hdl = DataHandler(df, var_name="fM",
                                limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
-                               nbins=56)
+                               nbins=cfg["plot_style"]["pt_int"]["n_bins"])
         bkg_funcs = cfg["fit_configs"]["pt_int"]["bkg_funcs"]
         if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
             data_hdl_bkg = DataHandler(df_mc_bkg, var_name="fM",
                                        limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
-                                       nbins=56)
+                                       nbins=cfg["plot_style"]["pt_int"]["n_bins"])
             bkg_funcs.append("kde_grid")
 
         fitter_ptint = F2MassFitter(data_hdl,
@@ -149,6 +149,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
             fig.savefig(os.path.join(outdir, "B0_mass_ptint.pdf"))
             fig_res.savefig(os.path.join(outdir, "B0_massres_ptint.pdf"))
 
+            fitter_ptint.dump_to_root(
+                outfile_name, option="update", suffix="_ptint")
 
     raw_yields, raw_yields_unc = [], []
     signif, signif_unc, s_over_b, s_over_b_unc = [], [], [], []
@@ -161,7 +163,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         df_mc_sig_pt = df_mc_sig.query(f"{pt_min} < fPt < {pt_max}")
         data_hdl_mc = DataHandler(df_mc_sig_pt, var_name="fM",
                                   limits=cfg["fit_configs"]["mass_limits"][ipt],
-                                  nbins=56)
+                                  nbins=cfg["plot_style"]["n_bins"][ipt])
         fitter_mc_pt = F2MassFitter(data_hdl_mc,
                                     ["doublegaus"],
                                     ["nobkg"],
@@ -172,11 +174,11 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         result = fitter_mc_pt.mass_zfit()
         if result.converged:
             fig = fitter_mc_pt.plot_mass_fit(style="ATLAS",
-                                            figsize=(8, 8),
-                                            axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                             figsize=(8, 8),
+                                             axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
             fig_res = fitter_mc_pt.plot_raw_residuals(style="ATLAS",
-                                                    figsize=(8, 8),
-                                                    axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                      figsize=(8, 8),
+                                                      axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
 
             fig.savefig(os.path.join(outdir, f"B0_mass_pt{pt_min:.0f}_{pt_max:.0f}_MC.pdf"))
             fig_res.savefig(os.path.join(outdir, f"B0_massres_pt{pt_min:.0f}_{pt_max:.0f}_MC.pdf"))
@@ -194,13 +196,13 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         df_mc_bkg_pt = df_mc_bkg.query(f"{pt_min} < fPt < {pt_max}")
         data_hdl = DataHandler(df_pt, var_name="fM",
                                limits=cfg["fit_configs"]["mass_limits"][ipt],
-                               nbins=56)
+                               nbins=cfg["plot_style"]["n_bins"][ipt])
 
         bkg_funcs = cfg["fit_configs"]["bkg_funcs"][ipt]
         if cfg["fit_configs"]["use_bkg_templ"][ipt]:
             data_hdl_bkg = DataHandler(df_mc_bkg_pt, var_name="fM",
                                        limits=cfg["fit_configs"]["mass_limits"][ipt],
-                                       nbins=56)
+                                       nbins=cfg["plot_style"]["n_bins"][ipt])
             bkg_funcs.append("kde_grid")
 
         fitter_pt = F2MassFitter(data_hdl,
@@ -244,7 +246,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
             sigmas.append(sigma)
             sigmas_unc.append(sigma_unc)
 
-            fitter_pt.dump_to_root(outfile_name, option="update")
+            fitter_pt.dump_to_root(
+                outfile_name, option="update", suffix=f"_pt{pt_min:.0f}_{pt_max:.0f}")
 
     file_root = uproot.update(outfile_name)
     file_root["h_rawyields"] = create_hist(pt_lims, raw_yields, raw_yields_unc)
