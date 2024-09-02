@@ -1,0 +1,89 @@
+---
+common:
+  channel: B0ToDPi
+  labels: [Bkg, Signal]
+  name_pt_var: fPt # name of pT branch in original TTree
+  pt_bins_limits: [2, 16]
+  tree_name: O2hfredcandb0lite
+  folder_name: DF*
+  column_to_save_list: ["fPt", "fM"]
+
+train_ml:
+  input:
+    file_name: AOD_ReducedB0Workflow_MC.root
+
+  pt_bins_limits: null  # to override common pt binning; set to null else
+
+  tag: fOriginMcRec
+
+  filt_bkg_mass: "fM < 5.0 or fM > 5.55"
+  downsample_bkg_factor: 1 # value of downSampleBkgFactor set at TTree creation level
+
+  seed_split: 42 # seed used for df_bkg sampling and train_test_split(...)
+  class_balance:
+    share: equal # change how the dataset is built, options available: 'equal', 'all_signal'
+    # 'equal' -> same number of signal/bkg (not using all the signal available)
+    # 'all_signal' -> try to use all the signal + add n_bkg = bkg_factor * n_signal
+    bkg_factor: [1.] # list of multipliers for n_signal used to determine n_cand_bkg in the 'all_signal' option
+  test_fraction: 0.3
+
+  training:
+    raw_output: false
+    roc_auc_approach: ovo
+    roc_auc_average: macro
+    training_vars:
+      [
+        fChi2PCA,
+        fDecayLength,
+        fDecayLengthXY,
+        fImpactParameter0,
+        fImpactParameterProduct,
+        fProng0MlScoreBkg,
+        fProng0MlScoreNonprompt,
+        fCpa,
+        fCpaXY
+      ]
+    hyper_pars: [
+      {
+        "max_depth": 3,
+        "learning_rate": 0.045,
+        "n_estimators": 800,
+        "min_child_weight": 4,
+        "n_jobs": 4,
+        "tree_method": hist,
+      }]
+    hyper_pars_opt:
+      activate: false
+      ntrials: 25
+      njobs: 4
+      timeout: 1800
+      hyper_par_ranges:
+        {
+          "max_depth": !!python/tuple [2, 3],
+          "learning_rate": !!python/tuple [0.03, 0.06],
+          "n_estimators": !!python/tuple [400, 2000],
+          "min_child_weight": !!python/tuple [4, 4],
+          "subsample": !!python/tuple [1, 1],
+          "colsample_bytree": !!python/tuple [1, 1]
+        }
+
+  output:
+    dir: trainings/B0
+    log_file: log.txt # name of log file for each model training
+    # list of variables saved in the dataframes with the applied models
+    
+
+  plots:
+    extra_columns: ["fPt", "fM"] # list of variables to plot (on top of the training ones)
+    extension: ["pdf", "png"] # extension of files containing saved plots
+
+
+apply_ml:
+  input:
+    file_name: AOD_ReducedB0Workflow_RealData.root
+    model_names: ["path_to_trained_BDT_model.pickle"]
+
+  output:
+    dir: applications/B0
+    tree_name: treeB0
+    data_tag: LHC23_24
