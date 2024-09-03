@@ -474,7 +474,7 @@ class MlTraining(MlCommon):
 # pylint: disable= too-many-instance-attributes, too-few-public-methods
 class MlApplication(MlCommon):
     """
-    Class for ML models application on real data
+    Class for ML models application
     """
 
     def __init__(self, config):

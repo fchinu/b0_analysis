@@ -37,3 +37,5 @@ In order to apply BDT models to real data and produce a `.root` file, the follow
 ```
 python3 ml_training_xor_application.py --config config_ml_B0ToDPi.yml --apply
 ```
+
+*Note: in order to perform KDE fit, one also needs to apply BDT models on MC data with `checkDecayTypeMc` activated.*
