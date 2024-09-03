@@ -182,9 +182,11 @@ class MlTraining(MlCommon):
 
         print("Loading and preparing data files: ...", end="\r")
 
+        # folders = ["DF_2262112103719808;1", "DF_2262112099588224;1", "DF_2262112099851392;1"]
+
         hdl_bkg = TreeHandler(
             file_name=self.bkg_infile_name, tree_name=self.tree_name, folder_name=self.folder_name
-            ).get_subset(f"{self.tag} == 0 and {self.filt_bkg_mass}")
+            ).get_subset(f"{self.tag} == 0 and ({self.filt_bkg_mass})")
         hdl_sig = TreeHandler(
             file_name=self.sig_infile_name, tree_name=self.tree_name, folder_name=self.folder_name
             ).get_subset(f"{self.tag} == 1")
@@ -556,9 +558,12 @@ class MlApplication(MlCommon):
             df_data_pt_sel = df_data_pt_sel.loc[:, self.column_to_save_list]
             df_data_pt_sel["ML_output"] = ypred
 
-            outfile_name = f"{out_dir}/{self.data_tag}_{self.channel}_pT_{pt_bin[0]}_{pt_bin[1]}_ModelApplied.root"
-            with uproot.recreate(outfile_name) as ofile:
+            outfile_name = f"{out_dir}/{self.data_tag}_{self.channel}_pT_{pt_bin[0]}_{pt_bin[1]}_ModelApplied"
+            outfile_name_root = outfile_name + ".root"
+            with uproot.recreate(outfile_name_root) as ofile:
                 ofile[self.out_tree_name] = df_data_pt_sel
+            outfile_name_parquet = outfile_name + ".parquet.gzip"
+            df_data_pt_sel.to_parquet(outfile_name_parquet)
 
             del df_data_pt_sel
 
