@@ -2,15 +2,18 @@
 Script for the raw-yield extraction of B0 mesons
 """
 
-import os
 import argparse
-import yaml
-import pandas as pd
+import os
+
 import numpy as np
+import pandas as pd
 import uproot
-from hist import Hist
+import yaml
 from flarefly.data_handler import DataHandler
 from flarefly.fitter import F2MassFitter
+from hist import Hist
+from matplotlib.offsetbox import AnchoredText
+
 
 def create_hist(pt_lims, contents, errors, label_pt=r"$p_\mathrm{T}~(\mathrm{GeV}/c)$"):
     """
@@ -36,6 +39,46 @@ def create_hist(pt_lims, contents, errors, label_pt=r"$p_\mathrm{T}~(\mathrm{GeV
     histo.view(flow=False).variance = np.array(errors)**2
 
     return histo
+
+
+# pylint: disable=too-many-arguments
+def add_info_on_canvas(axs, loc, system, pt_min, pt_max, fitter=None):
+    """
+    Helper method to add text on flarefly mass fit plot
+
+    Parameters
+    ----------
+    - axs: matplotlib.figure.Axis
+        Axis instance of the mass fit figure
+
+    - loc: str
+        Location of the info on the figure
+
+    - system: str
+        System (pp, MC pp)
+
+    - pt_min: float
+        Minimum pT value in the pT range
+
+    - pt_max: float
+        Maximum pT value in the pT range
+
+    - fitter: F2MassFitter
+        Fitter instance allowing to access chi2 and ndf if wanted
+    """
+    xspace = " "
+    text = xspace
+    if fitter is not None:
+        chi2 = fitter.get_chi2()
+        ndf = fitter.get_ndf()
+        text += fr"$\chi^2 / \mathrm{{ndf}} =${chi2:.2f} / {ndf} $\simeq$ {chi2/ndf:.2f}""\n"
+
+    text += "\n\n"
+    text += xspace + system + ", " + r"$\sqrt{s} = 13.6$ TeV" + "\n"
+    text += xspace + fr"{pt_min:.0f} < $p_{{\mathrm{{T}}}}$ < {pt_max:.0f} GeV/$c$, $|y|$ < 0.5""\n"
+
+    anchored_text = AnchoredText(text, loc=loc, frameon=False)
+    axs.add_artist(anchored_text)
 
 
 def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
@@ -79,9 +122,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         df_mc = pd.concat([df_mc, pd.read_parquet(file)])
     df_mc.query(selection_string, inplace=True)
 
-    df_mc_bkg = df_mc.query("fFlagMcMatchRec == 4")
+    df_mc_prd_bkg = df_mc.query("fFlagMcMatchRec == 4")  # prd = partly reco decays
     df_mc_sig = df_mc.query("fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1")
-
     # define output file
     outdir = cfg["outputs"]["directory"]
     outfile_name = os.path.join(outdir,
@@ -98,15 +140,18 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         fitter_mc_ptint = F2MassFitter(data_hdl_mc,
                                        ["doublegaus"],
                                        ["nobkg"],
-                                       name="b0_mc_ptint")
+                                       name="b0_mc_ptint",
+                                       label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"])
         fitter_mc_ptint.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.08])
         fitter_mc_ptint.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
         fitter_mc_ptint.set_particle_mass(0, pdg_id=511)
         result = fitter_mc_ptint.mass_zfit()
         if result.converged:
-            fig = fitter_mc_ptint.plot_mass_fit(style="ATLAS",
-                                                figsize=(8, 8),
-                                                axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+            fig, axs = fitter_mc_ptint.plot_mass_fit(style="ATLAS",
+                                                     figsize=(8, 8),
+                                                     axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+            add_info_on_canvas(axs, "upper left", "MC pp", pt_mins[0], pt_maxs[-1], fitter_mc_ptint)
+
             fig_res = fitter_mc_ptint.plot_raw_residuals(style="ATLAS",
                                                          figsize=(8, 8),
                                                          axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
@@ -119,32 +164,38 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
                                limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
                                nbins=cfg["plot_style"]["pt_int"]["n_bins"])
         bkg_funcs = cfg["fit_configs"]["pt_int"]["bkg_funcs"]
+        label_bkg_pdf = ["Comb. bkg"]
         if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
-            data_hdl_bkg = DataHandler(df_mc_bkg, var_name="fM",
-                                       limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
-                                       nbins=cfg["plot_style"]["pt_int"]["n_bins"])
+            data_hdl_prd_bkg = DataHandler(df_mc_prd_bkg, var_name="fM",
+                                           limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
+                                           nbins=cfg["plot_style"]["pt_int"]["n_bins"])
             bkg_funcs.append("kde_grid")
+            label_bkg_pdf.append("Partly reco decays")
 
         fitter_ptint = F2MassFitter(data_hdl,
                                     cfg["fit_configs"]["pt_int"]["signal_funcs"],
                                     bkg_funcs,
-                                    name="b0_ptint")
+                                    name="b0_ptint",
+                                    label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"],
+                                    label_bkg_pdf=label_bkg_pdf)
 
         if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
-            fitter_ptint.set_background_kde(1, data_hdl_bkg)
+            fitter_ptint.set_background_kde(1, data_hdl_prd_bkg)
 
         fitter_ptint.set_signal_initpar(0, "sigma", 0.03, limits=[0.01, 0.08])
         fitter_ptint.set_particle_mass(0, pdg_id=511)
         fitter_ptint.set_signal_initpar(0, "frac", 0.05, limits=[0., 1.])
         result = fitter_ptint.mass_zfit()
         if result.converged:
-            fig = fitter_ptint.plot_mass_fit(style="ATLAS",
-                                             figsize=(8, 8),
-                                             axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)",
-                                             show_extra_info=True)
+            fig, axs = fitter_ptint.plot_mass_fit(style="ATLAS",
+                                                  figsize=(8, 8),
+                                                  axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)",
+                                                  show_extra_info=True)
+            add_info_on_canvas(axs, "upper left", "pp", pt_mins[0], pt_maxs[-1])
+
             fig_res = fitter_ptint.plot_raw_residuals(style="ATLAS",
-                                                    figsize=(8, 8),
-                                                    axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                      figsize=(8, 8),
+                                                      axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
 
             fig.savefig(os.path.join(outdir, "B0_mass_ptint.pdf"))
             fig_res.savefig(os.path.join(outdir, "B0_massres_ptint.pdf"))
@@ -167,15 +218,18 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         fitter_mc_pt = F2MassFitter(data_hdl_mc,
                                     ["doublegaus"],
                                     ["nobkg"],
-                                    name=f"b0_mc_pt{pt_min:.0f}_{pt_max:.0f}")
+                                    name=f"b0_mc_pt{pt_min:.0f}_{pt_max:.0f}",
+                                    label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"])
         fitter_mc_pt.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.08])
         fitter_mc_pt.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
         fitter_mc_pt.set_particle_mass(0, pdg_id=511)
         result = fitter_mc_pt.mass_zfit()
         if result.converged:
-            fig = fitter_mc_pt.plot_mass_fit(style="ATLAS",
-                                             figsize=(8, 8),
-                                             axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+            fig, axs = fitter_mc_pt.plot_mass_fit(style="ATLAS",
+                                                  figsize=(8, 8),
+                                                  axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+            add_info_on_canvas(axs, "upper left", "MC pp", pt_min, pt_max, fitter_mc_pt)
+
             fig_res = fitter_mc_pt.plot_raw_residuals(style="ATLAS",
                                                       figsize=(8, 8),
                                                       axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
@@ -193,24 +247,29 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
 
         # then we fit data
         df_pt = df.query(f"{pt_min} < fPt < {pt_max}")
-        df_mc_bkg_pt = df_mc_bkg.query(f"{pt_min} < fPt < {pt_max}")
+        df_mc_prd_bkg_pt = df_mc_prd_bkg.query(f"{pt_min} < fPt < {pt_max}")
         data_hdl = DataHandler(df_pt, var_name="fM",
                                limits=cfg["fit_configs"]["mass_limits"][ipt],
                                nbins=cfg["plot_style"]["n_bins"][ipt])
 
         bkg_funcs = cfg["fit_configs"]["bkg_funcs"][ipt]
+        label_bkg_pdf = ["Comb. bkg"]
         if cfg["fit_configs"]["use_bkg_templ"][ipt]:
-            data_hdl_bkg = DataHandler(df_mc_bkg_pt, var_name="fM",
-                                       limits=cfg["fit_configs"]["mass_limits"][ipt],
-                                       nbins=cfg["plot_style"]["n_bins"][ipt])
+            data_hdl_prd_bkg = DataHandler(df_mc_prd_bkg_pt, var_name="fM",
+                                           limits=cfg["fit_configs"]["mass_limits"][ipt],
+                                           nbins=cfg["plot_style"]["n_bins"][ipt])
             bkg_funcs.append("kde_grid")
+            label_bkg_pdf.append("Partly reco decays")
 
         fitter_pt = F2MassFitter(data_hdl,
                                  cfg["fit_configs"]["signal_funcs"][ipt],
                                  bkg_funcs,
-                                 name=f"b0_pt{pt_min:.0f}_{pt_max:.0f}")
+                                 name=f"b0_pt{pt_min:.0f}_{pt_max:.0f}",
+                                 label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"],
+                                 label_bkg_pdf=label_bkg_pdf
+                                 )
         if cfg["fit_configs"]["use_bkg_templ"][ipt]:
-            fitter_pt.set_background_kde(1, data_hdl_bkg)
+            fitter_pt.set_background_kde(1, data_hdl_prd_bkg)
 
         fitter_pt.set_signal_initpar(0, "sigma", 0.03, limits=[0.01, 0.8])
         fitter_pt.set_particle_mass(0, pdg_id=511)
@@ -218,10 +277,12 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         fitter_pt.set_background_initpar(0, "frac", 0.8, limits=[0., 1.])
         result = fitter_pt.mass_zfit()
         if result.converged:
-            fig = fitter_pt.plot_mass_fit(style="ATLAS",
-                                          figsize=(8, 8),
-                                          axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)",
-                                          show_extra_info=True)
+            fig, axs = fitter_pt.plot_mass_fit(style="ATLAS",
+                                               figsize=(8, 8),
+                                               axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)",
+                                               show_extra_info=True)
+            add_info_on_canvas(axs, "upper left", "pp", pt_min, pt_max)
+
             fig_res = fitter_pt.plot_raw_residuals(style="ATLAS",
                                                    figsize=(8, 8),
                                                    axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
