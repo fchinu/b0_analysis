@@ -2,6 +2,7 @@
 Script with helper methods for style settings
 """
 
+import matplotlib as mpl 
 import ROOT
 
 # pylint: disable=too-many-branches, no-member
@@ -231,3 +232,25 @@ def set_object_style(obj, **kwargs):
             obj.SetFillColorAlpha(kwargs["color"], falpha)
         else:
             obj.SetFillColor(kwargs["color"])
+
+def root_colors_from_matplotlib_colormap(colormap_name):
+    """
+    Convert a matplotlib colormap to ROOT colors.
+
+    Parameters:
+    - colormap_name (str): The name of the matplotlib colormap.
+
+    Returns:
+    - root_color_indices (list): A list of color indices in ROOT.
+    - root_colors (list): A list of ROOT.TColor objects representing the colors.
+    """
+
+    colors = mpl.colormaps[colormap_name].colors
+    root_color_indices = []
+    root_colors = []
+    for color in colors:
+        idx = ROOT.TColor.GetFreeColorIndex()
+        root_colors.append(ROOT.TColor(idx, color[0], color[1], color[2], f"color{idx}"))
+        root_color_indices.append(idx)
+        
+    return root_color_indices, root_colors
