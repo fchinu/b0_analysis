@@ -42,6 +42,7 @@ def get_n_events_from_zorro(infile_names, zorro_folder, triggers_of_interest_nam
     for infile_name in infile_names:
         f = uproot.open(infile_name)
         zorro = f[zorro_folder]
+        n_events_per_file = 0
 
         for _, run_folder in zorro.items(recursive=False): # Loop over the run folders
             inspected_tvx = 0
@@ -50,12 +51,14 @@ def get_n_events_from_zorro(infile_names, zorro_folder, triggers_of_interest_nam
             inspected_tvx += sum(run_folder['InspectedTVX'].values())
             triggers_of_interest_skimming += sum([run_folder['Selections'].values()[run_folder['Selections'].axis().labels().index(trigger_name)] for trigger_name in triggers_of_interest_names])
             analysed_triggers_of_interest += sum(run_folder['AnalysedTriggersOfInterest'].values())
-            n_events += inspected_tvx*analysed_triggers_of_interest/triggers_of_interest_skimming
+            n_events_per_file += inspected_tvx*analysed_triggers_of_interest/triggers_of_interest_skimming
         
         if h_collisions_path is not None:
             h_collisions = f[h_collisions_path]
             z_vtx_eff = h_collisions.values()[h_collisions.axis().labels().index('PV #it{z}')]/h_collisions.values()[h_collisions.axis().labels().index('PV #it{z}') - 1]
-            n_events = n_events*z_vtx_eff
+            n_events_per_file = n_events_per_file*z_vtx_eff
+        
+        n_events += n_events_per_file
 
     return n_events
 
