@@ -13,13 +13,15 @@ import sys
 sys.path.append('Utils')
 from DfUtils import read_parquet_in_batches
 from AnalysisUtils import evaluate_efficiency_from_histos
+from style_formatter import root_colors_from_matplotlib_colormap
 
-def draw_efficiency_figure(h_eff, h_acc, out_file_name_pdf):
+def draw_efficiency_figure(h_eff, h_eff_trigger, h_acc, out_file_name_pdf):
     """
     Draw the efficiency and acceptance histograms.
 
     Args:
         h_eff (TH1F): The efficiency histogram.
+        h_eff_trigger (TH1F): The efficiency histogram before the BDT.
         h_acc (TH1F): The acceptance histogram.
         out_file_name_pdf (str): The name of the output PDF file.
 
@@ -36,24 +38,34 @@ def draw_efficiency_figure(h_eff, h_acc, out_file_name_pdf):
     ROOT.gStyle.SetPadTickX(1)
     ROOT.gStyle.SetPadTickY(1)
 
+    colors, _ = root_colors_from_matplotlib_colormap("tab10")
+
     h_eff.SetMarkerStyle(ROOT.kFullCircle)
-    h_eff.SetMarkerColor(ROOT.kAzure+2)
+    h_eff.SetMarkerColor(colors[0])
     h_eff.SetMarkerSize(2)
-    h_eff.SetLineColor(ROOT.kAzure+2)
+    h_eff.SetLineColor(colors[0])
     h_eff.SetLineWidth(2)
 
+    h_eff_trigger.SetMarkerStyle(ROOT.kFullSquare)
+    h_eff_trigger.SetMarkerColor(colors[1])
+    h_eff_trigger.SetMarkerSize(2)
+    h_eff_trigger.SetLineColor(colors[1])
+    h_eff_trigger.SetLineWidth(2)
+    h_eff_trigger.SetLineStyle(2)
+    
     h_acc.SetMarkerStyle(ROOT.kFullDiamond)
-    h_acc.SetMarkerColor(ROOT.kTeal-7)
+    h_acc.SetMarkerColor(colors[2])
     h_acc.SetMarkerSize(2.5)
-    h_acc.SetLineColor(ROOT.kTeal-7)
+    h_acc.SetLineColor(colors[2])
     h_acc.SetLineWidth(2)
     h_acc.SetLineStyle(7)
 
-    leg = ROOT.TLegend(0.5, 0.2, 0.8, 0.3)
+    leg = ROOT.TLegend(0.5, 0.15, 0.8, 0.3)
     leg.SetTextSize(0.045)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
     leg.AddEntry(h_acc, "Acceptance", "pl")
+    leg.AddEntry(h_eff_trigger, "Acc. #times #varepsilon_{trigger}", "pl")
     leg.AddEntry(h_eff, "Acc. #times #varepsilon", "pl")
 
     c_eff = ROOT.TCanvas('c_eff', '', 800, 800)
@@ -66,6 +78,8 @@ def draw_efficiency_figure(h_eff, h_acc, out_file_name_pdf):
     h_frame.GetYaxis().SetLabelSize(0.04)
     h_frame.GetXaxis().SetTitleSize(0.04)
     h_frame.GetXaxis().SetLabelSize(0.04)
+    h_eff_trigger.Draw('][ hist same')
+    h_eff_trigger.DrawClone('pe X0 same')
     h_eff.Draw('][ hist same')
     h_eff.DrawClone('pe X0 same')
     h_acc.Draw('][ hist same')
@@ -129,6 +143,7 @@ def compute_efficiency(config_file_name):
     pt_lims.append(pt_maxs[-1])
 
     h_reco_integrated = ROOT.TH1F('h_reco_integrated', ';#it{p}_{T} (GeV/#it{c});Reconstructed', n_pt_bins, np.asarray(pt_lims, 'd'))
+    h_reco_trigger_integrated = ROOT.TH1F('h_reco_trigger_integrated', ';#it{p}_{T} (GeV/#it{c});Reconstructed before BDT', n_pt_bins, np.asarray(pt_lims, 'd'))
     h_gen_integrated = ROOT.TH1F('h_gen_integrated', ';#it{p}_{T} (GeV/#it{c});Generated', n_pt_bins, np.asarray(pt_lims, 'd'))
     h_gen_in_acc_integrated = ROOT.TH1F('h_gen_in_acc_integrated', ';#it{p}_{T} (GeV/#it{c});Generated in acceptance', n_pt_bins, np.asarray(pt_lims, 'd'))
 
@@ -151,13 +166,18 @@ def compute_efficiency(config_file_name):
     h_gen_in_acc.SetName('h_gen_in_acc')
     h_reco = h_gen.Clone('h_reco')
     h_reco.Reset()
+    h_reco_trigger = h_reco.Clone('h_reco_trigger')
+    h_reco_trigger.Reset()
 
 
     for i_pt, (pt_min, pt_max) in enumerate(zip(pt_mins, pt_maxs)):
 
         # Apply the cuts on the reconstructed particles
         df_reco = pd.concat([read_parquet_in_batches(parquet, f"{pt_min} < fPt < {pt_max}") for parquet in config['reco_file_names']])
-        
+
+        for pt in df_reco['fPt']:
+            h_reco_trigger.Fill(pt)     
+
         sel_to_apply = ''
         for cut_var in cut_set:
             if cut_var == 'pt' or cut_var == 'M':
@@ -170,13 +190,16 @@ def compute_efficiency(config_file_name):
             h_reco.Fill(pt)
 
         # Get the number of generated and reconstructed particles in the given pt range
-        n_reco_unc, n_gen_unc, n_gen_in_acc_unc = (ctypes.c_double() for _ in range(3))
+        n_reco_unc, n_reco_trigger_unc, n_gen_unc, n_gen_in_acc_unc = (ctypes.c_double() for _ in range(4))
+        n_reco_trigger = h_reco_trigger.IntegralAndError(h_reco_trigger.FindBin(pt_min), h_reco_trigger.FindBin(pt_max)-1, n_reco_trigger_unc)
         n_reco = h_reco.IntegralAndError(h_reco.FindBin(pt_min), h_reco.FindBin(pt_max)-1, n_reco_unc)
         n_gen = h_gen.IntegralAndError(h_gen.FindBin(pt_min), h_gen.FindBin(pt_max)-1, n_gen_unc)
         n_gen_in_acc = h_gen_in_acc.IntegralAndError(h_gen_in_acc.FindBin(pt_min), h_gen_in_acc.FindBin(pt_max)-1, n_gen_in_acc_unc)
 
         h_reco_integrated.SetBinContent(i_pt+1, n_reco)
         h_reco_integrated.SetBinError(i_pt+1, n_reco_unc.value)
+        h_reco_trigger_integrated.SetBinContent(i_pt+1, n_reco_trigger)
+        h_reco_trigger_integrated.SetBinError(i_pt+1, n_reco_trigger_unc.value)
         h_gen_integrated.SetBinContent(i_pt+1, n_gen)
         h_gen_integrated.SetBinError(i_pt+1, n_gen_unc.value)
         h_gen_in_acc_integrated.SetBinContent(i_pt+1, n_gen_in_acc)
@@ -186,6 +209,9 @@ def compute_efficiency(config_file_name):
     h_eff = evaluate_efficiency_from_histos(h_gen_integrated, h_reco_integrated)
     h_eff.SetName('h_eff')
 
+    h_eff_trigger = evaluate_efficiency_from_histos(h_gen_integrated, h_reco_trigger_integrated)
+    h_eff_trigger.SetName('h_eff_trigger')
+
     h_acc = evaluate_efficiency_from_histos(h_gen_integrated, h_gen_in_acc_integrated)
     h_acc.SetName('h_acc')
 
@@ -193,22 +219,31 @@ def compute_efficiency(config_file_name):
     h_eff_fine_bins = evaluate_efficiency_from_histos(h_gen, h_reco)
     h_eff_fine_bins.SetName('h_eff_fine_bins')
 
+    h_eff_trigger_fine_bins = evaluate_efficiency_from_histos(h_gen_in_acc, h_reco_trigger)
+    h_eff_trigger_fine_bins.SetName('h_eff_trigger_fine_bins')
+
     h_acc_fine_bins = evaluate_efficiency_from_histos(h_gen, h_gen_in_acc)
     h_acc_fine_bins.SetName('h_acc_fine_bins')
 
     out_file = ROOT.TFile(config['output_file_name'], 'recreate')
     h_eff.Write()
     h_eff_fine_bins.Write()
+    h_eff_trigger.Write()
+    h_eff_trigger_fine_bins.Write()
     h_acc.Write()
     h_acc_fine_bins.Write()
     h_gen.Write()
     h_reco.Write()
+    h_reco_trigger.Write()
+    h_gen_in_acc.Write()
     h_gen_integrated.Write()
+    h_gen_in_acc_integrated.Write()
     h_reco_integrated.Write()
+    h_reco_trigger_integrated.Write()
     out_file.Close()
 
     out_file_name_pdf = config['output_file_name'].replace('.root', '.pdf')
-    draw_efficiency_figure(h_eff, h_acc, out_file_name_pdf)
+    draw_efficiency_figure(h_eff, h_eff_trigger, h_acc, out_file_name_pdf)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments')
