@@ -1,11 +1,26 @@
 #!/bin/bash
 
-# tell me if I am analysing data or MC
 MC=0
 
-JSONCONFIG=dpl-config_bmes_mc.json
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --mc)
+            MC="$2"
+            shift # Move past argument value
+            shift # Move past argument name
+            ;;
+        *)    # Unknown option
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+echo $MC
+
+JSONCONFIG=dpl-config_b0_mc.json
 if [ $MC -eq 0 ]; then
-    JSONCONFIG=dpl-config_bmes.json
+    JSONCONFIG=dpl-config_b0.json
 fi
 COMMONCONFIGS="-b --aod-memory-rate-limit 1000000000 --configuration json://$JSONCONFIG --shm-segment-size 7500000000"
 
