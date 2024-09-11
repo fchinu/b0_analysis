@@ -173,7 +173,10 @@ def compute_efficiency(config_file_name):
     for i_pt, (pt_min, pt_max) in enumerate(zip(pt_mins, pt_maxs)):
 
         # Apply the cuts on the reconstructed particles
-        df_reco = pd.concat([read_parquet_in_batches(parquet, f"{pt_min} < fPt < {pt_max}") for parquet in config['reco_file_names']])
+        require_signal = "(fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1)"
+        df_reco = pd.concat(
+            [read_parquet_in_batches(parquet, f"{pt_min} < fPt < {pt_max} and {require_signal}")
+             for parquet in config['reco_file_names']])
 
         for pt in df_reco['fPt']:
             h_reco_trigger.Fill(pt)     
