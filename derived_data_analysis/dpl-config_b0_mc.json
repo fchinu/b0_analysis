@@ -22,7 +22,8 @@
         "processDataWithDmesMl": "true"
     },
     "hf-candidate-creator-b0-reduced-expressions": {
-        "processMc": "true"
+        "processMc": "false",
+        "processMcWithDecayTypeCheck": "true"
     },
     "hf-candidate-selector-b0-to-d-pi-reduced": {
         "ptCandMin": "0",
