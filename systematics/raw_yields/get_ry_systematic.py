@@ -236,7 +236,7 @@ def get_input_data(cfg, pt_mins, pt_maxs, bdt_cut_mins, bdt_cut_maxs):  # pylint
 
     df_mc_sig = df_mc.query("fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1")
     if any(cfg["multitrial"]["use_bkg_templ"]):
-        df_mc_prd_bkg = df_mc.query("fFlagMcMatchRec == 4")  # prd = partly reco decays
+        df_mc_prd_bkg = df_mc.query("fFlagMcMatchRec == 8")  # prd = partly reco decays
     else:
         df_mc_prd_bkg = None
 
