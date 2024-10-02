@@ -1,11 +1,11 @@
 reference_fits: fit/outputs/B0_mass.root                # file with central values
     
 inputs:
-    data: [ ML/Application/pt2_6/Data_w_al_pT_2_6_ModelApplied.parquet.gzip,
-            ML/Application/pt6_100/Data_w_al_pT_6_100_ModelApplied.parquet.gzip]
+    data: [ ML/application/LHC23_24_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+            ML/application/LHC23_24_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
 
-    mc:   [ ML/Application/pt2_6/MCwBkg_pT_2_6_ModelApplied.parquet.gzip,
-            ML/Application/pt6_100/MCwBkg_pT_6_100_ModelApplied.parquet.gzip]
+    mc:   [ ML/application/LHC23c1_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+            ML/application/LHC23c1_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
 
     cutset: 'config/cutset.yaml'
 
@@ -26,3 +26,5 @@ multitrial:
     mean: [free]                                        # free, fixed, fixed_plus_unc, fixed_minus_unc, fixed_plus_XX_perc, fixed_minus_XX_perc
     use_bkg_templ: [true]                               # use bkg template
     bincounting_nsigma: []                              # nsigmas for bin counting raw yield extraction
+
+assigned_syst: [0.1, 0.1]                               # assigned systematic uncertainties

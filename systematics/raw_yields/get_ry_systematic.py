@@ -21,7 +21,7 @@ from matplotlib.patches import Rectangle
 import pandas as pd
 
 
-def draw_multitrial(df_multitrial, cfg, pt_min, pt_max):  # pylint: disable=too-many-locals, too-many-statements # noqa: 501
+def draw_multitrial(df_multitrial, cfg, pt_min, pt_max, idx_assigned_syst):  # pylint: disable=too-many-locals, too-many-statements # noqa: 501
     """
     Produce a plot with the results of the multitrial procedure.
 
@@ -30,6 +30,7 @@ def draw_multitrial(df_multitrial, cfg, pt_min, pt_max):  # pylint: disable=too-
     - cfg (dict): Configuration dictionary.
     - pt_min (float): Minimum pt value.
     - pt_max (float): Maximum pt value.
+    - idx_assigned_syst (int): Index of the assigned systematic uncertainty.
 
     Returns:
     - None
@@ -66,20 +67,21 @@ def draw_multitrial(df_multitrial, cfg, pt_min, pt_max):  # pylint: disable=too-
             zorder=1
         )
 
-    axs[0, 0].set_xlim(0, x_axis_range)
-    axs[0, 0].set_xlabel('Trial', fontsize=14)
-    axs[0, 0].set_ylabel('Raw yield', fontsize=14)
-    axs[0, 0].legend(fontsize=12)
-
     # Draw the central values
     axs[0, 0].axhline(y=central_rawy, color='r', linestyle='--')
     axs[0, 0].add_patch(
         Rectangle(
             (0, central_rawy - central_rawy_unc),
             x_axis_range, 2 * central_rawy_unc,
-            color='r', alpha=0.3, zorder=0
+            color='r', alpha=0.3, zorder=0,
+            label=r'Central value $\pm$ uncertainty'
         )
     )
+
+    axs[0, 0].set_xlim(0, x_axis_range)
+    axs[0, 0].set_xlabel('Trial', fontsize=14)
+    axs[0, 0].set_ylabel('Raw yield', fontsize=14)
+    axs[0, 0].legend(fontsize=12)
 
     # Draw the raw yields distribution
     axs[0, 1].hist(
@@ -99,9 +101,6 @@ def draw_multitrial(df_multitrial, cfg, pt_min, pt_max):  # pylint: disable=too-
         )
 
     # Draw information
-    axs[0, 1].set_xlabel('Raw yields', fontsize=14)
-    axs[0, 1].set_ylabel('Counts', fontsize=14)
-    axs[0, 1].legend(fontsize=12, loc='upper right')
     info = 'Fit:\n'
     info += fr'$\mu =$ {np.mean(df_multitrial["rawy"]):.3f}''\n'
     info += fr'$\sigma =$ {np.std(df_multitrial["rawy"]):.3f}''\n'
@@ -115,28 +114,44 @@ def draw_multitrial(df_multitrial, cfg, pt_min, pt_max):  # pylint: disable=too-
         frameon=False
     )
 
-    # Draw the central values
+    # Draw the rms + shift from the central value
+    rms_shift = get_rms_shift_sum_quadrature(df_multitrial, cfg, i_pt)
     axs[0, 1].axvline(x=central_rawy, color='r', linestyle='--')
     axs[0, 1].add_patch(
         Rectangle(
-            (central_rawy - central_rawy_unc, 0),
-            2 * central_rawy_unc, axs[0, 1].get_ylim()[1],
-            color='r', alpha=0.3, zorder=0
+            (central_rawy - rms_shift, 0),
+            2 * rms_shift, axs[0, 1].get_ylim()[1],
+            color='r', alpha=0.3, zorder=0,
+            label=r'$\mathrm{\sqrt{RMS^2 + \Delta^2}}$'
         )
     )
     axs[0, 1].add_artist(anchored_text_fit)
+
+    # Draw the assigned systematic uncertainty
+    axs[0, 1].add_patch(
+        Rectangle(
+            (central_rawy - cfg["assigned_syst"][idx_assigned_syst] * central_rawy, 0),
+            2 * cfg["assigned_syst"][idx_assigned_syst] * central_rawy, axs[0, 1].get_ylim()[1],
+            color='limegreen', alpha=0.3, zorder=0,
+            label='Assigned syst.'
+        )
+    )
+
+    axs[0, 1].set_xlabel('Raw yields', fontsize=14)
+    axs[0, 1].set_ylabel('Counts', fontsize=14)
+    axs[0, 1].legend(fontsize=12, loc='upper right')
 
     x_min = min(
         df_multitrial["rawy"].min(),
         *[df_multitrial[f"rawy_bincounting_{nsigma}"].min()
             for nsigma in multitrial_cfg['bincounting_nsigma']],
-        central_rawy - central_rawy_unc
+        central_rawy - rms_shift
     )
     x_max = max(
         df_multitrial["rawy"].max(),
         *[df_multitrial[f"rawy_bincounting_{nsigma}"].max()
             for nsigma in multitrial_cfg['bincounting_nsigma']],
-        central_rawy + central_rawy_unc
+        central_rawy + rms_shift
     )
     axs[0, 1].set_xlim(x_min * 0.9, x_max * 1.1)
 
@@ -147,9 +162,6 @@ def draw_multitrial(df_multitrial, cfg, pt_min, pt_max):  # pylint: disable=too-
         yerr=df_multitrial["sigma_unc"], fmt='o',
         zorder=2
     )
-    axs[1, 0].set_xlim(0, x_axis_range)
-    axs[1, 0].set_xlabel('Trial', fontsize=14)
-    axs[1, 0].set_ylabel('Width ($GeV/c^2$)', fontsize=14)
 
     # Draw the central values
     axs[1, 0].axhline(y=central_sigma, color='r', linestyle='--')
@@ -157,20 +169,30 @@ def draw_multitrial(df_multitrial, cfg, pt_min, pt_max):  # pylint: disable=too-
         Rectangle(
             (0, central_sigma - central_sigma_unc),
             x_axis_range, 2 * central_sigma_unc,
-            color='r', alpha=0.3, zorder=0
+            color='r', alpha=0.3, zorder=0,
+            label=r'Central value $\pm$ uncertainty'
         )
     )
 
+    axs[1, 0].set_xlim(0, x_axis_range)
+    axs[1, 0].set_xlabel('Trial', fontsize=14)
+    axs[1, 0].set_ylabel('Width ($GeV/c^2$)', fontsize=14)
+    axs[1, 0].legend(fontsize=12)
+
+    # Draw the chi2/ndf
     axs[1, 1].scatter(
         x=range(1, len(df_multitrial["chi2_ndf"]) + 1),
         y=df_multitrial["chi2_ndf"]
     )
     axs[1, 1].set_xlim(0, x_axis_range)
     axs[1, 1].set_xlabel('Trial', fontsize=14)
-    axs[1, 1].set_ylabel(r'$\chi^2/ndf$', fontsize=14)
+    axs[1, 1].set_ylabel(r'$\chi^2/$ndf', fontsize=14)
 
     plt.show()
-    fig.savefig(os.path.join(cfg["output_dir"], f'fig_{pt_min*10:.0f}_{pt_max*10:.0f}.png'), bbox_inches='tight')
+    fig.savefig(
+        os.path.join(cfg["output_dir"], f'fig_{pt_min*10:.0f}_{pt_max*10:.0f}.png'),
+        bbox_inches='tight'
+    )
 
 
 def get_input_data(cfg, pt_mins, pt_maxs, bdt_cut_mins, bdt_cut_maxs):  # pylint: disable=too-many-locals # noqa: 501
@@ -394,7 +416,7 @@ def build_fitter(
         sgn_funcs = [sgn_funcs]
     label_bkg_pdf = ["Comb. bkg"]
     if trial["use_bkg_templ"]:
-        label_bkg_pdf.append("Partly reco decays")
+        label_bkg_pdf.insert(0, "Partly reco decays")
         bkg_funcs.insert(0, "kde_grid")
 
     mean_for_data, sigma_for_data = get_mean_sigma_for_data(mean_with_unc, sigma_with_unc, trial)
@@ -420,7 +442,7 @@ def build_fitter(
     if sigma_for_data is not None:  # if sigma is fixed, set the sigma
         fitter.set_signal_initpar(0, "sigma", sigma_for_data, fix=True)
     else:  # sigma is free
-        fitter.set_signal_initpar(0, "sigma", 0.01, fix=False, limits=[0.001, 0.1])
+        fitter.set_signal_initpar(0, "sigma", 0.04, fix=False, limits=[0.001, 0.1])
 
     if trial["bkg_funcs"] == ["chebpol2"]:
         fitter.set_background_initpar(1, "c0", 1.)
@@ -446,7 +468,7 @@ def fit(fitter, cfg, i_trial, suffix):  # pylint: disable=too-many-locals
     result = fitter.mass_zfit()
     if result.converged:
         rawy, rawy_unc = fitter.get_raw_yield(0)
-        if cfg["multitrial"]["bincounting_nsigma"]: # if there is at least one nsigma
+        if cfg["multitrial"]["bincounting_nsigma"]:  # if there is at least one nsigma
             rawy_bincounting, rawy_bincounting_unc = zip(
                 *[fitter.get_raw_yield_bincounting(0, nsigma=nsigma)
                     for nsigma in cfg["multitrial"]["bincounting_nsigma"]]
@@ -464,6 +486,8 @@ def fit(fitter, cfg, i_trial, suffix):  # pylint: disable=too-many-locals
                 figsize=(8, 8),
                 axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)"
             )
+            if not os.path.exists(os.path.join(cfg["output_dir"], cfg["output_dir_fits"])):
+                os.makedirs(os.path.join(cfg["output_dir"], cfg["output_dir_fits"]))
             fig.savefig(
                 os.path.join(cfg["output_dir"], cfg["output_dir_fits"], f"mass_fit_{suffix}.pdf")
             )
@@ -493,7 +517,85 @@ def fit(fitter, cfg, i_trial, suffix):  # pylint: disable=too-many-locals
     return output_dict
 
 
-def multi_trial(config_file_name: str):  # pylint: disable=too-many-locals
+def get_rms_shift_sum_quadrature(df, cfg, i_pt, rel=False):
+    """
+    Calculate the sum in quadrature of the RMS and shift from the central value for raw yields.
+
+    Parameters:
+        df (pandas.DataFrame): DataFrame containing the raw yields.
+        cfg (dict): Configuration dictionary.
+        i_pt (int): Index of pt.
+        rel (bool): If True, return the relative uncertainty.
+
+    Returns:
+        float: The sum in quadrature of the RMS and shift from the central value for raw yields.
+    """
+    with uproot.open(cfg["reference_fits"]) as f:
+        h_rawy = f["h_rawyields"]
+    central_rawy = h_rawy.values()[i_pt]
+
+    if rel:
+        return np.sqrt(
+            np.std(df["rawy"])**2 +
+            (np.mean(df["rawy"]) - central_rawy)**2
+        ) / central_rawy
+
+    return np.sqrt(
+        np.std(df["rawy"])**2 +
+        (np.mean(df["rawy"]) - central_rawy)**2
+    )
+
+
+def dump_results_to_root(dfs, cfg, cut_set):
+    """
+    Dump the results to a ROOT file.
+
+    Parameters:
+        dfs (list of pandas.DataFrame): List of dataframes containing the data for each pt bin.
+        cfg (dict): Configuration dictionary.
+        cut_set (dict): Dictionary containing the cut sets.
+
+    Returns:
+        None
+    """
+    pt_mins = cut_set["pt"]["mins"]
+    pt_maxs = cut_set["pt"]["maxs"]
+    pt_edges = np.asarray(pt_mins + [pt_maxs[-1]], "d")
+    pt_bins = cfg["multitrial"]["pt_bins"]
+    if pt_bins is None:
+        pt_bins = list(range(len(pt_mins)))
+
+    rms_shifts = []
+    assigned_syst = []
+
+    cols_to_save = [
+        "rawy", "rawy_unc", "significance", "significance_unc",
+        "soverb", "soverb_unc", "mean", "mean_unc", "sigma", "sigma_unc", "chi2_ndf"
+    ]
+
+    idx_assigned_syst = 0
+    for i_pt in range(len(pt_mins)):
+        if i_pt not in pt_bins:
+            rms_shifts.append(0)
+            assigned_syst.append(0)
+            continue
+        rms_shifts.append(get_rms_shift_sum_quadrature(dfs[i_pt], cfg, i_pt, rel=True))
+        assigned_syst.append(cfg["assigned_syst"][idx_assigned_syst])
+        idx_assigned_syst += 1
+
+    if not os.path.exists(cfg["output_dir"]):
+        os.makedirs(cfg["output_dir"])
+    output_file_name = os.path.join(cfg["output_dir"], "raw_yields_systematic.root")
+    with uproot.recreate(output_file_name) as f:
+        for pt_bin in pt_bins:
+            suffix = f"_{pt_mins[pt_bin] * 10:.0f}_{pt_maxs[pt_bin] * 10:.0f}"
+            f[f"df{suffix}"] = dfs[pt_bin][cols_to_save]
+
+        f["rms_shifts_sum_quadrature"] = (np.array(rms_shifts), pt_edges)
+        f["assigned_syst"] = (np.array(assigned_syst), pt_edges)
+
+
+def multi_trial(config_file_name: str):  # pylint: disable=too-many-locals, too-many-statements
     """
     Perform multiple trials based on the given configuration file.
 
@@ -530,8 +632,14 @@ def multi_trial(config_file_name: str):  # pylint: disable=too-many-locals
         cfg, pt_mins, pt_maxs, bdt_cut_mins, bdt_cut_maxs
     )
 
+    rms_shifts = []  # sum in quadrature of the rms and shifts of the raw yield distributions
+    dfs = []
+
+    idx_assigned_syst = 0
     for i_pt, (pt_min, pt_max) in enumerate(zip(pt_mins, pt_maxs)):
         if multitrial_cfg["pt_bins"] is not None and i_pt not in multitrial_cfg["pt_bins"]:
+            rms_shifts.append(0)
+            dfs.append(None)
             continue
 
         df_pt = df.query(f"{pt_min} < fPt < {pt_max}")
@@ -569,10 +677,16 @@ def multi_trial(config_file_name: str):  # pylint: disable=too-many-locals
 
         # save the results as pandas dataframe
         df_trials = pd.DataFrame(trial_rows)
+        if not os.path.exists(cfg["output_dir"]):
+            os.makedirs(cfg["output_dir"])
         df_trials.to_parquet(
             os.path.join(cfg["output_dir"], f"raw_yields_{pt_min*10:.0f}_{pt_max*10:.0f}.parquet")
         )
-        draw_multitrial(df_trials, cfg, pt_min, pt_max)
+        dfs.append(df_trials)
+
+        draw_multitrial(df_trials, cfg, pt_min, pt_max, idx_assigned_syst)
+        idx_assigned_syst += 1
+    dump_results_to_root(dfs, cfg, cut_set)
 
 
 if __name__ == '__main__':
