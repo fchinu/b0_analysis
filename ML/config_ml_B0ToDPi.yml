@@ -81,10 +81,11 @@ train_ml:
 
 apply_ml:
   input:
-    file_name: AOD_ReducedB0Workflow_RealData_or_McDataWithBkg.root
+    file_names: [AOD_ReducedB0Workflow_RealData_or_McDataWithBkg.root,
+                 AOD_ReducedB0Workflow_RealData_or_McDataWithBkg.root]
     model_names: ["path_to_trained_BDT_model.pickle"]
 
   output:
     dir: applications/B0
     tree_name: treeB0
-    data_tag: LHC23_24
+    data_tags: [LHC23_24, LHC23c1]

@@ -491,11 +491,11 @@ class MlApplication(MlCommon):
         # initialize mother common class
         super().__init__(config_common)
 
-        self.infile_name = config_apply["input"]["file_name"]
+        self.infile_names = config_apply["input"]["file_names"]
         self.model_names = enforce_list(config_apply["input"]["model_names"])
         self.outdir = config_apply["output"]["dir"]
         self.out_tree_name = config_apply["output"]["tree_name"]
-        self.data_tag = config_apply["output"]["data_tag"]
+        self.data_tags = config_apply["output"]["data_tags"]
 
     def __check_input_consistency(self):
         """
@@ -535,37 +535,38 @@ class MlApplication(MlCommon):
         self.__check_input_consistency()
         model_hdls = self.__load_models()
 
-        print(f"Loading and preparing data file {self.infile_name}: ...", end="\r")
-        hdl_data = TreeHandler(file_name=self.infile_name, tree_name=self.tree_name, folder_name=self.folder_name)
-        hdl_data.slice_data_frame(self.name_pt_var, self.pt_bins, True)
-        print(f"Loading and preparing data files {self.infile_name}: Done!")
+        for infile_name, data_tag in zip(self.infile_names, self.data_tags):
+            print(f"Loading and preparing data file {infile_name}: ...", end="\r")
+            hdl_data = TreeHandler(file_name=infile_name, tree_name=self.tree_name, folder_name=self.folder_name)
+            hdl_data.slice_data_frame(self.name_pt_var, self.pt_bins, True)
+            print(f"Loading and preparing data files {infile_name}: Done!")
 
-        out_dir = os.path.expanduser(self.outdir)
-        if os.path.isdir(out_dir):
-            print(
-                (
-                    f"\033[93mWARNING: Output directory '{out_dir}' already exists,"
-                    " overwrites possibly ongoing!\033[0m"
+            out_dir = os.path.expanduser(self.outdir)
+            if os.path.isdir(out_dir):
+                print(
+                    (
+                        f"\033[93mWARNING: Output directory '{out_dir}' already exists,"
+                        " overwrites possibly ongoing!\033[0m"
+                    )
                 )
-            )
-        else:
-            os.makedirs(out_dir)
-        print("Applying ML model to dataframes: ...", end="\r")
-        for ibin, pt_bin in enumerate(self.pt_bins):
-            df_data_pt_sel = hdl_data.get_slice(ibin)
-            ypred = model_hdls[ibin].predict(df_data_pt_sel, False)
+            else:
+                os.makedirs(out_dir)
+            print("Applying ML model to dataframes: ...", end="\r")
+            for ibin, pt_bin in enumerate(self.pt_bins):
+                df_data_pt_sel = hdl_data.get_slice(ibin)
+                ypred = model_hdls[ibin].predict(df_data_pt_sel, False)
 
-            df_data_pt_sel = df_data_pt_sel.loc[:, self.column_to_save_list]
-            df_data_pt_sel["ML_output"] = ypred
+                df_data_pt_sel = df_data_pt_sel.loc[:, self.column_to_save_list]
+                df_data_pt_sel["ML_output"] = ypred
 
-            outfile_name = f"{out_dir}/{self.data_tag}_{self.channel}_pT_{pt_bin[0]}_{pt_bin[1]}_ModelApplied"
-            outfile_name_root = outfile_name + ".root"
-            with uproot.recreate(outfile_name_root) as ofile:
-                ofile[self.out_tree_name] = df_data_pt_sel
-            outfile_name_parquet = outfile_name + ".parquet.gzip"
-            df_data_pt_sel.to_parquet(outfile_name_parquet)
+                outfile_name = f"{out_dir}/{data_tag}_{self.channel}_pT_{pt_bin[0]}_{pt_bin[1]}_ModelApplied"
+                outfile_name_root = outfile_name + ".root"
+                with uproot.recreate(outfile_name_root) as ofile:
+                    ofile[self.out_tree_name] = df_data_pt_sel
+                outfile_name_parquet = outfile_name + ".parquet.gzip"
+                df_data_pt_sel.to_parquet(outfile_name_parquet)
 
-            del df_data_pt_sel
+                del df_data_pt_sel
 
 
 def main(cfg, train):
