@@ -122,7 +122,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         df_mc = pd.concat([df_mc, pd.read_parquet(file)])
     df_mc.query(selection_string, inplace=True)
 
-    df_mc_prd_bkg = df_mc.query("fFlagMcMatchRec == 4")  # prd = partly reco decays
+    df_mc_prd_bkg = df_mc.query("fFlagMcMatchRec == 8")  # prd = partly reco decays
     df_mc_sig = df_mc.query("fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1")
     # define output file
     outdir = cfg["outputs"]["directory"]
