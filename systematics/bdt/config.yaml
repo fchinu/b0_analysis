@@ -1,0 +1,31 @@
+efficiency_file: efficiency/efficiency.root             # file with central values
+central_cutset: config/cutset.yaml                      # file with central cuts (used for pt bins)
+    
+inputs:
+    data: [ ML/application/LHC23_24_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+            ML/application/LHC23_24_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
+
+    mc:   [ ML/application/LHC23c1_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+            ML/application/LHC23c1_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
+
+max_workers: 2                                          # number of parallel workers
+
+output:
+    output_dir: systematics/bdt/outputs                 # output directory
+    save_all_fits: true                                 # whether to save all fits figures
+    output_dir_fits: fits                               # append to output_dir
+
+cut_variations:
+    pt_bins: null                                       # list of pt bins, set null if you want to keep them all
+    mins: [0.59,   0.59,  0.59,  0.59,  0.59]           # lower cut limit
+    maxs: [0.99, 0.99, 0.99, 0.99, 0.99]                # lower cut limit
+    n_cuts: [5, 5, 5, 5, 5]                             # number of cuts (edges are included)
+    edge: "min"                                         # edge to vary (min or max)
+
+fit:
+    fit_config: fit/config_fit.yml                      # file with central values
+    fix_sigma: true                                     # fix sigma to the central values
+    fix_mean: false                                     # fix mean to the central values
+    fit_file: fit/outputs/B0_mass.root                  # file with central values
+
+assigned_syst: [0.1, 0.1, 0.1, 0.1, 0.1]                # assigned systematic uncertainties
