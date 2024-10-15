@@ -81,7 +81,7 @@ def add_info_on_canvas(axs, loc, system, pt_min, pt_max, fitter=None):
     axs.add_artist(anchored_text)
 
 
-def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
+def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too-many-branches
     """
     Main function for fitting
 
@@ -96,18 +96,23 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
 
     with open(cfg["cutset_file_name"], "r") as yml_cfg:  # pylint: disable=unspecified-encoding
         cut_set = yaml.load(yml_cfg, yaml.FullLoader)
-    
+
     particle = cfg["particle"]
+    pdg_id = -1
+    decay_channel = ""
+    particle_name = ""
+    flag_mc_match_rec = -999
+
     if particle == "Bplus":
-        pdgId = 521
+        pdg_id = 521
         decay_channel = r"\overline{D}^{0} \pi^{\plus}"
-        particleName = "B^{+}"
-        fFlagMcMatchRec = 4 # prd = partly reco decays
+        particle_name = "B^{+}"
+        flag_mc_match_rec = 4 # prd = partly reco decays
     if particle == "B0":
-        pdgId = 511
+        pdg_id = 511
         decay_channel = r"D^{-} \pi^{\plus}"
-        particleName = "B^{0}"
-        fFlagMcMatchRec = 8 # prd = partly reco decays
+        particle_name = "B^{0}"
+        flag_mc_match_rec = 8 # prd = partly reco decays
 
     pt_mins = cut_set["pt"]["mins"]
     pt_maxs = cut_set["pt"]["maxs"]
@@ -134,7 +139,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         df_mc = pd.concat([df_mc, pd.read_parquet(file)])
     df_mc.query(selection_string, inplace=True)
 
-    df_mc_prd_bkg = df_mc.query(f"fFlagMcMatchRec == {fFlagMcMatchRec}")  # prd = partly reco decays
+    df_mc_prd_bkg = df_mc.query(f"fFlagMcMatchRec == {flag_mc_match_rec}")  # prd = partly reco decays
     df_mc_sig = df_mc.query("fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1")
     # define output file
     outdir = cfg["outputs"]["directory"]
@@ -153,10 +158,10 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
                                        ["doublegaus"],
                                        ["nobkg"],
                                        name=f"{particle}_mc_ptint",
-                                       label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"])
+                                       label_signal_pdf=[rf"$\mathrm{{{particle_name}}}$ signal"])
         fitter_mc_ptint.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.08])
         fitter_mc_ptint.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
-        fitter_mc_ptint.set_particle_mass(0, pdg_id=511)
+        fitter_mc_ptint.set_particle_mass(0, pdg_id=pdg_id)
         result = fitter_mc_ptint.mass_zfit()
         if result.converged:
             fig, axs = fitter_mc_ptint.plot_mass_fit(style="ATLAS",
@@ -188,14 +193,14 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
                                     cfg["fit_configs"]["pt_int"]["signal_funcs"],
                                     bkg_funcs,
                                     name=f"{particle}_ptint",
-                                    label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"],
+                                    label_signal_pdf=[rf"$\mathrm{{{particle_name}}}$ signal"],
                                     label_bkg_pdf=label_bkg_pdf)
 
         if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
             fitter_ptint.set_background_kde(1, data_hdl_prd_bkg)
 
         fitter_ptint.set_signal_initpar(0, "sigma", 0.03, limits=[0.01, 0.08])
-        fitter_ptint.set_particle_mass(0, pdg_id=511)
+        fitter_ptint.set_particle_mass(0, pdg_id=pdg_id)
         fitter_ptint.set_signal_initpar(0, "frac", 0.05, limits=[0., 1.])
         result = fitter_ptint.mass_zfit()
         if result.converged:
@@ -231,10 +236,10 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
                                     ["doublegaus"],
                                     ["nobkg"],
                                     name=f"{particle}_mc_pt{pt_min:.0f}_{pt_max:.0f}",
-                                    label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"])
+                                    label_signal_pdf=[rf"$\mathrm{{{particle_name}}}$ signal"])
         fitter_mc_pt.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.08])
         fitter_mc_pt.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
-        fitter_mc_pt.set_particle_mass(0, pdg_id=511)
+        fitter_mc_pt.set_particle_mass(0, pdg_id=pdg_id)
         result = fitter_mc_pt.mass_zfit()
         if result.converged:
             fig, axs = fitter_mc_pt.plot_mass_fit(style="ATLAS",
@@ -277,14 +282,14 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
                                  cfg["fit_configs"]["signal_funcs"][ipt],
                                  bkg_funcs,
                                  name=f"{particle}_pt{pt_min:.0f}_{pt_max:.0f}",
-                                 label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"],
+                                 label_signal_pdf=[rf"$\mathrm{{{particle_name}}}$ signal"],
                                  label_bkg_pdf=label_bkg_pdf
                                  )
         if cfg["fit_configs"]["use_bkg_templ"][ipt]:
             fitter_pt.set_background_kde(1, data_hdl_prd_bkg)
 
         fitter_pt.set_signal_initpar(0, "sigma", 0.03, limits=[0.01, 0.8])
-        fitter_pt.set_particle_mass(0, pdg_id=511)
+        fitter_pt.set_particle_mass(0, pdg_id=pdg_id)
         fitter_pt.set_signal_initpar(0, "frac", 0.05, limits=[0., 1.])
         fitter_pt.set_background_initpar(0, "frac", 0.8, limits=[0., 1.])
         result = fitter_pt.mass_zfit()
