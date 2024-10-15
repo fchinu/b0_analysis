@@ -1,13 +1,13 @@
 {
     "internal-dpl-clock": "",
     "internal-dpl-aod-reader": {
-        "time-limit": "120",
+        "time-limit": "6000000",
         "orbit-offset-enumeration": "0",
         "orbit-multiplier-enumeration": "0",
         "start-value-enumeration": "0",
         "end-value-enumeration": "-1",
         "step-value-enumeration": "1",
-        "aod-file-private": "@input_data.txt"
+        "aod-file-private": "@input_mc.txt"
     },
     "hf-candidate-creator-b0-reduced": {
         "propagateToPCA": "true",
@@ -22,7 +22,8 @@
         "processDataWithDmesMl": "true"
     },
     "hf-candidate-creator-b0-reduced-expressions": {
-        "processMc": "false"
+        "processMc": "false",
+        "processMcWithDecayTypeCheck": "true"
     },
     "hf-candidate-selector-b0-to-d-pi-reduced": {
         "ptCandMin": "0",
@@ -367,13 +368,13 @@
         "fillHistograms": "false",
         "fillSparses": "true",
         "fillTree": "true",
-        "fillBackground": "false",
+        "fillBackground": "true",
         "downSampleBkgFactor": "0.99000001",
         "ptMaxForDownSample": "1",
         "processData": "false",
-        "processDataWithDmesMl": "true",
+        "processDataWithDmesMl": "false",
         "processMc": "false",
-        "processMcWithDmesMl": "false"
+        "processMcWithDmesMl": "true"
     },
     "internal-dpl-aod-writer": "",
     "internal-dpl-aod-global-analysis-file-sink": "",
