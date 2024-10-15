@@ -15,7 +15,7 @@ from DfUtils import read_parquet_in_batches
 from AnalysisUtils import evaluate_efficiency_from_histos
 from style_formatter import root_colors_from_matplotlib_colormap
 
-def draw_efficiency_figure(h_eff, h_eff_trigger, h_acc, out_file_name_pdf):
+def draw_efficiency_figure(particle, h_eff, h_eff_trigger, h_acc, out_file_name_pdf):
     """
     Draw the efficiency and acceptance histograms.
 
@@ -87,7 +87,12 @@ def draw_efficiency_figure(h_eff, h_eff_trigger, h_acc, out_file_name_pdf):
     leg.Draw()
 
     # Add the text
-    text_decay = ROOT.TLatex(0.51, 0.36, 'B^{0}#rightarrow D^{#font[122]{-}}#pi^{+}#rightarrow #pi^{#font[122]{-}}K^{+}#pi^{#font[122]{-}}#pi^{+}')
+    if particle == "Bplus":
+        decayChannel = 'B^{+}#rightarrow#bar{D}^{#font[122]{0}}#pi^{+}#rightarrow #pi^{#font[122]{-}}K^{+}#pi^{+}'
+    if particle == "B0":
+        decayChannel = 'B^{0}#rightarrow D^{#font[122]{-}}#pi^{+}#rightarrow #pi^{#font[122]{-}}K^{+}#pi^{#font[122]{-}}#pi^{+}'
+    
+    text_decay = ROOT.TLatex(0.51, 0.36, decayChannel)
     text_decay.SetNDC()
     text_decay.SetTextSize(0.04)
     text_decay.SetTextFont(42)
@@ -121,7 +126,7 @@ def draw_efficiency_figure(h_eff, h_eff_trigger, h_acc, out_file_name_pdf):
 
 def compute_efficiency(config_file_name):
     """
-    Compute the efficiency of a B0 particle based on the given configuration and cut set.
+    Compute the efficiency of a B meson based on the given configuration and cut set.
 
     Args:
         config_file_name (str): The file name of the configuration file.
@@ -135,7 +140,8 @@ def compute_efficiency(config_file_name):
     
     with open(config['cutset_file_name'], 'r') as yml_cut_set_file:
         cut_set = yaml.safe_load(yml_cut_set_file)
-
+    
+    particle = config["particle"]
     pt_mins = cut_set['pt']['mins']
     pt_maxs = cut_set['pt']['maxs']
     pt_lims = list(pt_mins)
@@ -246,7 +252,7 @@ def compute_efficiency(config_file_name):
     out_file.Close()
 
     out_file_name_pdf = config['output_file_name'].replace('.root', '.pdf')
-    draw_efficiency_figure(h_eff, h_eff_trigger, h_acc, out_file_name_pdf)
+    draw_efficiency_figure(particle, h_eff, h_eff_trigger, h_acc, out_file_name_pdf)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments')

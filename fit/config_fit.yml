@@ -1,3 +1,5 @@
+particle: "B0"
+
 inputs:
   data: [../inputs/pt2_6/Data_pT_2_6_ModelApplied.parquet.gzip,
          ../inputs/pt6_100/Data_pT_6_100_ModelApplied.parquet.gzip]

@@ -1,5 +1,5 @@
 """
-Script for the raw-yield extraction of B0 mesons
+Script for the raw-yield extraction of B mesons
 """
 
 import argparse
@@ -96,6 +96,18 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
 
     with open(cfg["cutset_file_name"], "r") as yml_cfg:  # pylint: disable=unspecified-encoding
         cut_set = yaml.load(yml_cfg, yaml.FullLoader)
+    
+    particle = cfg["particle"]
+    if particle == "Bplus":
+        pdgId = 521
+        decay_channel = r"\overline{D}^{0} \pi^{\plus}"
+        particleName = "B^{+}"
+        fFlagMcMatchRec = 4 # prd = partly reco decays
+    if particle == "B0":
+        pdgId = 511
+        decay_channel = r"D^{-} \pi^{\plus}"
+        particleName = "B^{0}"
+        fFlagMcMatchRec = 8 # prd = partly reco decays
 
     pt_mins = cut_set["pt"]["mins"]
     pt_maxs = cut_set["pt"]["maxs"]
@@ -122,12 +134,12 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         df_mc = pd.concat([df_mc, pd.read_parquet(file)])
     df_mc.query(selection_string, inplace=True)
 
-    df_mc_prd_bkg = df_mc.query("fFlagMcMatchRec == 8")  # prd = partly reco decays
+    df_mc_prd_bkg = df_mc.query(f"fFlagMcMatchRec == {fFlagMcMatchRec}")  # prd = partly reco decays
     df_mc_sig = df_mc.query("fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1")
     # define output file
     outdir = cfg["outputs"]["directory"]
     outfile_name = os.path.join(outdir,
-                                f"B0_mass{cfg['outputs']['suffix']}.root")
+                                f"{particle}_mass{cfg['outputs']['suffix']}.root")
     file_root = uproot.recreate(outfile_name)
     file_root.close()
 
@@ -140,8 +152,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         fitter_mc_ptint = F2MassFitter(data_hdl_mc,
                                        ["doublegaus"],
                                        ["nobkg"],
-                                       name="b0_mc_ptint",
-                                       label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"])
+                                       name=f"{particle}_mc_ptint",
+                                       label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"])
         fitter_mc_ptint.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.08])
         fitter_mc_ptint.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
         fitter_mc_ptint.set_particle_mass(0, pdg_id=511)
@@ -149,15 +161,15 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         if result.converged:
             fig, axs = fitter_mc_ptint.plot_mass_fit(style="ATLAS",
                                                      figsize=(8, 8),
-                                                     axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                     axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)")
             add_info_on_canvas(axs, "upper left", "MC pp", pt_mins[0], pt_maxs[-1], fitter_mc_ptint)
 
             fig_res = fitter_mc_ptint.plot_raw_residuals(style="ATLAS",
                                                          figsize=(8, 8),
-                                                         axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                         axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)")
 
-            fig.savefig(os.path.join(outdir, "B0_mass_ptint_MC.pdf"))
-            fig_res.savefig(os.path.join(outdir, "B0_massres_ptint_MC.pdf"))
+            fig.savefig(os.path.join(outdir, f"{particle}_mass_ptint_MC.pdf"))
+            fig_res.savefig(os.path.join(outdir, f"{particle}_massres_ptint_MC.pdf"))
 
         # then we fit data
         data_hdl = DataHandler(df, var_name="fM",
@@ -175,8 +187,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         fitter_ptint = F2MassFitter(data_hdl,
                                     cfg["fit_configs"]["pt_int"]["signal_funcs"],
                                     bkg_funcs,
-                                    name="b0_ptint",
-                                    label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"],
+                                    name=f"{particle}_ptint",
+                                    label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"],
                                     label_bkg_pdf=label_bkg_pdf)
 
         if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
@@ -189,16 +201,16 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         if result.converged:
             fig, axs = fitter_ptint.plot_mass_fit(style="ATLAS",
                                                   figsize=(8, 8),
-                                                  axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)",
+                                                  axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)",
                                                   show_extra_info=True)
             add_info_on_canvas(axs, "upper left", "pp", pt_mins[0], pt_maxs[-1])
 
             fig_res = fitter_ptint.plot_raw_residuals(style="ATLAS",
                                                       figsize=(8, 8),
-                                                      axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                      axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)")
 
-            fig.savefig(os.path.join(outdir, "B0_mass_ptint.pdf"))
-            fig_res.savefig(os.path.join(outdir, "B0_massres_ptint.pdf"))
+            fig.savefig(os.path.join(outdir, f"{particle}_mass_ptint.pdf"))
+            fig_res.savefig(os.path.join(outdir, f"{particle}_massres_ptint.pdf"))
 
             fitter_ptint.dump_to_root(
                 outfile_name, option="update", suffix="_ptint")
@@ -218,8 +230,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         fitter_mc_pt = F2MassFitter(data_hdl_mc,
                                     ["doublegaus"],
                                     ["nobkg"],
-                                    name=f"b0_mc_pt{pt_min:.0f}_{pt_max:.0f}",
-                                    label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"])
+                                    name=f"{particle}_mc_pt{pt_min:.0f}_{pt_max:.0f}",
+                                    label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"])
         fitter_mc_pt.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.08])
         fitter_mc_pt.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
         fitter_mc_pt.set_particle_mass(0, pdg_id=511)
@@ -227,15 +239,15 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         if result.converged:
             fig, axs = fitter_mc_pt.plot_mass_fit(style="ATLAS",
                                                   figsize=(8, 8),
-                                                  axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                  axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)")
             add_info_on_canvas(axs, "upper left", "MC pp", pt_min, pt_max, fitter_mc_pt)
 
             fig_res = fitter_mc_pt.plot_raw_residuals(style="ATLAS",
                                                       figsize=(8, 8),
-                                                      axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                      axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)")
 
-            fig.savefig(os.path.join(outdir, f"B0_mass_pt{pt_min:.0f}_{pt_max:.0f}_MC.pdf"))
-            fig_res.savefig(os.path.join(outdir, f"B0_massres_pt{pt_min:.0f}_{pt_max:.0f}_MC.pdf"))
+            fig.savefig(os.path.join(outdir, f"{particle}_mass_pt{pt_min:.0f}_{pt_max:.0f}_MC.pdf"))
+            fig_res.savefig(os.path.join(outdir, f"{particle}_massres_pt{pt_min:.0f}_{pt_max:.0f}_MC.pdf"))
 
             mean, mean_unc = fitter_mc_pt.get_signal_parameter(0, "mu")
             sigma, sigma_unc = fitter_mc_pt.get_signal_parameter(0, "sigma1")
@@ -264,8 +276,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         fitter_pt = F2MassFitter(data_hdl,
                                  cfg["fit_configs"]["signal_funcs"][ipt],
                                  bkg_funcs,
-                                 name=f"b0_pt{pt_min:.0f}_{pt_max:.0f}",
-                                 label_signal_pdf=[r"$\mathrm{B}^{0}$ signal"],
+                                 name=f"{particle}_pt{pt_min:.0f}_{pt_max:.0f}",
+                                 label_signal_pdf=[rf"$\mathrm{{{particleName}}}$ signal"],
                                  label_bkg_pdf=label_bkg_pdf
                                  )
         if cfg["fit_configs"]["use_bkg_templ"][ipt]:
@@ -279,16 +291,16 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements
         if result.converged:
             fig, axs = fitter_pt.plot_mass_fit(style="ATLAS",
                                                figsize=(8, 8),
-                                               axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)",
+                                               axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)",
                                                show_extra_info=True)
             add_info_on_canvas(axs, "upper left", "pp", pt_min, pt_max)
 
             fig_res = fitter_pt.plot_raw_residuals(style="ATLAS",
                                                    figsize=(8, 8),
-                                                   axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)")
+                                                   axis_title=rf"$M(\mathrm{{{decay_channel}}})$ (GeV/$c^2$)")
 
-            fig.savefig(os.path.join(outdir, f"B0_mass_pt{pt_min:.0f}_{pt_max:.0f}.pdf"))
-            fig_res.savefig(os.path.join(outdir, f"B0_massres_pt{pt_min:.0f}_{pt_max:.0f}.pdf"))
+            fig.savefig(os.path.join(outdir, f"{particle}_mass_pt{pt_min:.0f}_{pt_max:.0f}.pdf"))
+            fig_res.savefig(os.path.join(outdir, f"{particle}_massres_pt{pt_min:.0f}_{pt_max:.0f}.pdf"))
 
             rawy, rawy_unc = fitter_pt.get_raw_yield(0)
             sign, sign_unc = fitter_pt.get_significance(0)
