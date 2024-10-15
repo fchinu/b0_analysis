@@ -197,7 +197,7 @@ class MlTraining(MlCommon):
         print("Loading and preparing data files: Done!")
         return hdl_bkg, hdl_sig
 
-    # pylint: disable=too-many-statements, too-many-branches, too-many-arguments, too-many-locals
+    # pylint: disable=too-many-statements, too-many-branches, too-many-arguments, too-many-locals, too-many-statements
     def __data_prep(self, df_bkg, df_sig, pt_bin, out_dir, bkg_factor):
         """
         Helper method for pt-dependent data preparation
@@ -404,7 +404,8 @@ class MlTraining(MlCommon):
         )
         for ext in self.extension:
             fig_roc_curve.savefig(f"{out_dir}/ROCCurveAll_pT_{pt_bin[0]}_{pt_bin[1]}.{ext}")
-        pickle.dump(fig_roc_curve, open(f"{out_dir}/ROCCurveAll_pT_{pt_bin[0]}_{pt_bin[1]}.pkl", "wb"))
+        with open(f"{out_dir}/ROCCurveAll_pT_{pt_bin[0]}_{pt_bin[1]}.pkl", "wb") as file:
+            pickle.dump(fig_roc_curve, file)
         # _____________________________________________
         plt.rcParams["figure.figsize"] = (10, 9)
         fig_roc_curve_tt = plot_utils.plot_roc_train_test(
