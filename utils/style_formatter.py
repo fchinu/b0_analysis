@@ -3,7 +3,7 @@ Script with helper methods for style settings
 """
 
 import matplotlib as mpl
-import ROOT
+import ROOT # pylint: disable=import-error
 
 # pylint: disable=too-many-branches, no-member
 

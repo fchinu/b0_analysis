@@ -7,9 +7,9 @@ Run:
 import argparse
 import sys
 sys.path.append('utils') # pylint: disable=wrong-import-position
-import ROOT
+import ROOT # pylint: disable=import-error
 import yaml
-from utils.analysis_utils import get_n_events_from_zorro
+from analysis_utils import get_n_events_from_zorro # pylint: disable=import-error
 # pylint: disable=no-member
 
 def main(config_file_name):

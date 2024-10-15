@@ -1,6 +1,6 @@
 """Module containing utility functions for analyses."""
 import uproot
-import ROOT
+import ROOT # pylint: disable=import-error
 import numpy as np
 # pylint: disable=no-member
 

@@ -7,13 +7,13 @@ import sys
 sys.path.append('utils') # pylint: disable=wrong-import-position
 import ctypes
 import argparse
-import ROOT
+import ROOT # pylint: disable=import-error
 import pandas as pd
 import numpy as np
 import yaml
-from utils.df_utils import read_parquet_in_batches
-from utils.analysis_utils import evaluate_efficiency_from_histos
-from utils.style_formatter import root_colors_from_matplotlib_colormap
+from df_utils import read_parquet_in_batches # pylint: disable=import-error
+from analysis_utils import evaluate_efficiency_from_histos # pylint: disable=import-error
+from style_formatter import root_colors_from_matplotlib_colormap # pylint: disable=import-error
 # pylint: disable=no-member
 
 def draw_efficiency_figure(particle, h_eff, h_eff_trigger, h_acc, out_file_name_pdf): # pylint: disable=too-many-statements
