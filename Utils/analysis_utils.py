@@ -1,22 +1,24 @@
+"""Module containing utility functions for analyses."""
 import uproot
 import ROOT
 import numpy as np
+# pylint: disable=no-member
 
-def evaluate_efficiency_from_histos(hGen, hReco):
+def evaluate_efficiency_from_histos(h_gen, h_reco):
     """
     Evaluate the efficiency of a B0 particle.
 
     Args:
-        hGen (TH1F): The histogram of the generated B0 particles.
-        hReco (TH1F): The histogram of the reconstructed B0 particles.
+        h_gen (TH1F): The histogram of the generated B0 particles.
+        h_reco (TH1F): The histogram of the reconstructed B0 particles.
 
     Returns:
         TH1F: The efficiency of the B0 particle.
     """
-    
-    hEff = hReco.Clone('h_efficiency')
-    hEff.Divide(hReco, hGen, 1., 1., 'B')
-    return hEff
+
+    h_eff = h_reco.Clone('h_efficiency')
+    h_eff.Divide(h_reco, h_gen, 1., 1., 'B')
+    return h_eff
 
 def get_n_events_from_zorro(infile_names, zorro_folder, triggers_of_interest_names, h_collisions_path=None):
     """
@@ -38,7 +40,7 @@ def get_n_events_from_zorro(infile_names, zorro_folder, triggers_of_interest_nam
 
     if not isinstance(triggers_of_interest_names, list):
         triggers_of_interest_names = [triggers_of_interest_names]
-        
+
     for infile_name in infile_names:
         f = uproot.open(infile_name)
         zorro = f[zorro_folder]
@@ -49,15 +51,19 @@ def get_n_events_from_zorro(infile_names, zorro_folder, triggers_of_interest_nam
             triggers_of_interest_skimming = 0
             analysed_triggers_of_interest = 0
             inspected_tvx += sum(run_folder['InspectedTVX'].values())
-            triggers_of_interest_skimming += sum([run_folder['Selections'].values()[run_folder['Selections'].axis().labels().index(trigger_name)] for trigger_name in triggers_of_interest_names])
+            triggers_of_interest_skimming += sum(
+                run_folder['Selections'].values()[
+                    run_folder['Selections'].axis().labels().index(trigger_name)
+                ] for trigger_name in triggers_of_interest_names
+            )
             analysed_triggers_of_interest += sum(run_folder['AnalysedTriggersOfInterest'].values())
             n_events_per_file += inspected_tvx*analysed_triggers_of_interest/triggers_of_interest_skimming
-        
+
         if h_collisions_path is not None:
             h_collisions = f[h_collisions_path]
-            z_vtx_eff = h_collisions.values()[h_collisions.axis().labels().index('PV #it{z}')]/h_collisions.values()[h_collisions.axis().labels().index('PV #it{z}') - 1]
+            z_vtx_eff = h_collisions.values()[h_collisions.axis().labels().index('PV #it{z}')] / h_collisions.values()[h_collisions.axis().labels().index('PV #it{z}') - 1]  # pylint:disable=line-too-long
             n_events_per_file = n_events_per_file*z_vtx_eff
-        
+
         n_events += n_events_per_file
 
     return n_events
@@ -105,8 +111,6 @@ def rebin_tgraph_asymm_errors(graph, new_bins):
         # Extract the relevant points
         x_vals = np.array([graph.GetX()[j] for j in range(graph.GetN()) if bin_mask[j]])
         y_vals = np.array([graph.GetY()[j] for j in range(graph.GetN()) if bin_mask[j]])
-        x_err_low_vals = np.array([graph.GetErrorXlow(j) for j in range(graph.GetN()) if bin_mask[j]])
-        x_err_up_vals = np.array([graph.GetErrorXhigh(j) for j in range(graph.GetN()) if bin_mask[j]])
         y_err_low_vals = np.array([graph.GetErrorYlow(j) for j in range(graph.GetN()) if bin_mask[j]])
         y_err_up_vals = np.array([graph.GetErrorYhigh(j) for j in range(graph.GetN()) if bin_mask[j]])
 
