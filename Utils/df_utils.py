@@ -1,3 +1,4 @@
+"""Module containing utility functions for working with dataframes."""
 import pandas as pd
 import pyarrow.parquet as pq
 
