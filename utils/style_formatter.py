@@ -2,8 +2,8 @@
 Script with helper methods for style settings
 """
 
-import matplotlib as mpl 
-import ROOT
+import matplotlib as mpl
+import ROOT # pylint: disable=import-error
 
 # pylint: disable=too-many-branches, no-member
 
@@ -179,11 +179,11 @@ def set_object_style(obj, **kwargs):
     lalpha = kwargs.get("alpha", 1)
     malpha = kwargs.get("alpha", 1)
     falpha = kwargs.get("alpha", 1)
-    if "linealpha" in kwargs:
+    if "linealpha" in kwargs: # pylint: disable=consider-using-get
         lalpha = kwargs["linealpha"]
-    if "markeralpha" in kwargs:
+    if "markeralpha" in kwargs: # pylint: disable=consider-using-get
         malpha = kwargs["markeralpha"]
-    if "fillalpha" in kwargs:
+    if "fillalpha" in kwargs: # pylint: disable=consider-using-get
         falpha = kwargs["fillalpha"]
 
     # line styles
@@ -252,5 +252,5 @@ def root_colors_from_matplotlib_colormap(colormap_name):
         idx = ROOT.TColor.GetFreeColorIndex()
         root_colors.append(ROOT.TColor(idx, color[0], color[1], color[2], f"color{idx}"))
         root_color_indices.append(idx)
-        
+
     return root_color_indices, root_colors

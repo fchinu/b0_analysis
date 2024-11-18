@@ -1,9 +1,16 @@
-import argparse 
-import ROOT
-import yaml
+"""
+Script for evaluating the cross section.
+
+Run:
+    python compute_cross_section.py config.yaml
+"""
+import argparse
 import sys
-sys.path.append('Utils')
-from AnalysisUtils import get_n_events_from_zorro
+sys.path.append('utils') # pylint: disable=wrong-import-position
+import ROOT # pylint: disable=import-error
+import yaml
+from analysis_utils import get_n_events_from_zorro # pylint: disable=import-error
+# pylint: disable=no-member
 
 def main(config_file_name):
     '''
@@ -15,12 +22,15 @@ def main(config_file_name):
     Returns:
     None
     '''
-    
-    with open(config_file_name, 'r') as yml_config_file:
+
+    with open(config_file_name, 'r', encoding='utf-8') as yml_config_file:
         config = yaml.load(yml_config_file, yaml.FullLoader)
 
     analysis_results_files = config['lumi']['analysis_results_files']
-    n_events = get_n_events_from_zorro(analysis_results_files, config['lumi']['zorro_folder'], config['lumi']['triggers_of_interest'], config['lumi']['h_collisions_path'])
+    n_events = get_n_events_from_zorro(
+        analysis_results_files, config['lumi']['zorro_folder'],
+        config['lumi']['triggers_of_interest'], config['lumi']['h_collisions_path']
+    )
     int_lumi = n_events/config['lumi']['tvx_cross_section']
 
     br_b_to_d = config['br']['b0_todminuspi']
