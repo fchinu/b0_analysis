@@ -2,70 +2,85 @@
 Script to download unmerged outputs from hyperloop
 """
 
-import argparse
 import os
+import argparse
+import multiprocessing
 
-def download(infile_name, suffix, max_files_to_merge):
+def download_from_directory(task_id, input_directory):
     """
-    Main function for download
-    It requires access to alien
+    Function to be executed in parallel that downloads all the files for a specific run
     """
 
-    files_to_merge = []
-    with open(infile_name, "r") as infile:
-        for idir, directory in enumerate(infile):
-            if os.path.isdir(f"input_{idir:03d}"): # we clean previously downloaded files
-                os.rmdir(f"input_{idir:03d}")
-            os.mkdir(f"input_{idir:03d}")
-            if os.path.isfile("files_to_download_part.txt"):
-                os.system("rm files_to_download_part.txt")
-            os.system("touch files_to_download_part.txt")
-            os.system(f"alien_find alien://{directory.strip()} 0*/AO2D.root > files_to_download_part.txt")
-            with open("files_to_download_part.txt", "r") as file_part:
-                for ifile, line_part in enumerate(file_part):
-                    os.system(f"alien_cp alien://{line_part.strip()} file:input_{idir:03d}/AO2D_{ifile:03d}.root")
-                    os.system(f"alien_cp alien://{line_part.strip().replace('AO2D', 'AnalysisResults')} "
-                              f"file:input_{idir:03d}/AnalysisResults_{ifile:03d}.root")
-                    files_to_merge.append(f"input_{idir:03d}/AO2D_{ifile:03d}.root")
+    print(f"Processing task {task_id}")
+    train_id = input_directory.split(sep="/")[-1]
+    os.system(f"alien_find alien://{input_directory} "
+              f"AOD/*/AnalysisResults.root > outputs_{train_id}.txt")
 
-    nbatches = 0
-    for ifile, file_to_merge in enumerate(files_to_merge):
-        if ifile % max_files_to_merge == 0:
-            nbatches += 1
-            if os.path.isfile(f"files_to_merge_{nbatches-1}.txt"):
-                os.system(f"rm files_to_merge_{nbatches-1}.txt")
-            os.system(f"touch files_to_merge_{nbatches-1}.txt")
-        os.system(f"echo {file_to_merge} >> files_to_merge_{nbatches-1}.txt")
+    check_unmerged = False
+    with open(f"outputs_{train_id}.txt") as file:
+        lines = [line.rstrip() for line in file]
 
-    if nbatches > 1:
-        if os.path.isfile("files_to_merge.txt"):
-            os.system("rm files_to_merge.txt")
-        os.system("touch files_to_merge.txt")
-        for batch in range(nbatches):
-            os.system(f"o2-aod-merger --input files_to_merge_{batch}.txt --output "
-                      f"AO2D{suffix}_batch{batch}.root --max-size 1000000000")
-            os.system(f"echo AO2D{suffix}_batch{batch}.root >> files_to_merge.txt")
-        os.system("o2-aod-merger --input files_to_merge.txt --output "
-                  f"AO2D{suffix}.root --max-size 1000000000")
-    else:
-        os.system("o2-aod-merger --input files_to_merge_0.txt --output "
-                  f"AO2D{suffix}.root --max-size 1000000000")
+        if len(lines) == 0:
+            check_unmerged = True
 
-    os.system(f"hadd -n {max_files_to_merge} AnalysisResults{suffix}.root input_*/AnalysisResults_*.root")
+    if check_unmerged:
+        os.system(f"alien_find alien://{input_directory} "
+                  f"*/AnalysisResults.root > outputs_{train_id}.txt")
+        with open(f"outputs_{train_id}.txt") as file:
+            lines = [line.rstrip() for line in file]
 
-    os.system("rm files_to_download_part.txt")
-    os.system("rm files_to_merge*.txt")
-    os.system("rm *batch*.root")
-    os.system("rm -r input_*")
+    if not os.path.isdir(train_id):
+        os.mkdir(train_id)
+    for ifile, line in enumerate(lines):
+        os.system(f"alien_cp {line} file:{train_id}/AnalysisResults_{ifile:03d}.root")
+        os.system(f"alien_cp {line.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{ifile:03d}.root")
+
+    print(f"Processing task {task_id} - DONE")
+
+
+def download_and_merge(input_file, num_workers, suffix):
+    """
+    Main function to download and merge output files from hyperloop
+    """
+
+    output_directories = []
+    with open(input_file, 'r') as file:
+        for line in file:
+            # Split line by comma or any delimiter
+            parts = line.strip().split(',')
+            for part in parts:
+                output_directories.append(part)
+
+    num_workers = min(num_workers, os.cpu_count())  # Get the number of available CPU cores)
+
+    # tasks = [(idir, path) for (idir, path) in enumerate(output_directories)]
+    with multiprocessing.Pool(processes=num_workers) as pool:
+        pool.starmap(download_from_directory, enumerate(output_directories))
+
+    for train_dir in os.listdir("."):
+        if os.path.isdir(train_dir) and "hy_" in train_dir:
+            for file in os.listdir(train_dir):
+                if "AO2D" in file:
+                    file_path = os.path.join(train_dir, file)
+                    os.system(f"echo {file_path} >> files_to_merge.txt")
+
+    os.system("o2-aod-merger --input files_to_merge.txt --output "
+              f"AO2D{suffix}.root --max-size 1000000000 --skip-parent-files-list")
+
+    os.system(f"hadd -f AnalysisResults{suffix}.root hy_*/AnalysisResults*.root")
+
+    os.system(f"rm -r hy_*")
+    os.system(f"rm outputs_hy_*")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Arguments")
-    parser.add_argument("--infile", "-i", metavar="text", default="files_to_download_B0_LHC24.txt",
-                        help="text file with input directories (from hyperloop)")
-    parser.add_argument("--suffix", "-s", metavar="text", default="_LHC24_pass1_skimmed",
-                        help="output suffix")
-    parser.add_argument("--max_files_to_merge", "-m", type=int, default=200,
-                        help="maximum number of files to merge")
-    args = parser.parse_args()
+    PARSER = argparse.ArgumentParser(description="Arguments")
+    PARSER.add_argument("--input_file", "-i", metavar="text",
+                        help="text input file with directories", required=True)
+    PARSER.add_argument("--jobs", "-j", type=int, default=20,
+                        help="number of workers", required=False)
+    PARSER.add_argument("--suffix", "-s", metavar="text",
+                        default="_LHC24_pass1_skimmed",
+                        help="output file", required=False)
+    ARGS = PARSER.parse_args()
 
-    download(args.infile, args.suffix, args.max_files_to_merge)
+    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix)
