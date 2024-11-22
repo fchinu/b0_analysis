@@ -4,6 +4,7 @@ Script to download unmerged outputs from hyperloop
 
 import os
 import argparse
+import math
 import multiprocessing
 
 def download_from_directory(task_id, input_directory):
@@ -38,7 +39,7 @@ def download_from_directory(task_id, input_directory):
     print(f"Processing task {task_id} - DONE")
 
 
-def download_and_merge(input_file, num_workers, suffix):
+def download_and_merge(input_file, num_workers, suffix, n_merged_files):
     """
     Main function to download and merge output files from hyperloop
     """
@@ -53,24 +54,37 @@ def download_and_merge(input_file, num_workers, suffix):
 
     num_workers = min(num_workers, os.cpu_count())  # Get the number of available CPU cores)
 
-    # tasks = [(idir, path) for (idir, path) in enumerate(output_directories)]
     with multiprocessing.Pool(processes=num_workers) as pool:
         pool.starmap(download_from_directory, enumerate(output_directories))
 
+    files_to_merge = []
     for train_dir in os.listdir("."):
         if os.path.isdir(train_dir) and "hy_" in train_dir:
             for file in os.listdir(train_dir):
                 if "AO2D" in file:
                     file_path = os.path.join(train_dir, file)
-                    os.system(f"echo {file_path} >> files_to_merge.txt")
+                    files_to_merge.append(file_path)
 
-    os.system("o2-aod-merger --input files_to_merge.txt --output "
-              f"AO2D{suffix}.root --max-size 1000000000 --skip-parent-files-list")
+    n_files_perbunch = math.ceil(len(files_to_merge) / n_merged_files)
+    nbunch = 0
+    for ifile, file in enumerate(files_to_merge):
+        if ifile % n_files_perbunch == 0:
+            nbunch += 1
+        os.system(f"echo {file} >> files_to_merge_{nbunch}.txt")
+
+    if nbunch > 1:
+        for bunch in range(nbunch):
+            os.system(f"o2-aod-merger --input files_to_merge_{bunch}.txt --output "
+                      f"AO2D{suffix}_{bunch}.root --max-size 1000000000 --skip-parent-files-list")
+    else:
+        os.system(f"o2-aod-merger --input files_to_merge_0.txt --output "
+                  f"AO2D{suffix}.root --max-size 1000000000 --skip-parent-files-list")
 
     os.system(f"hadd -f AnalysisResults{suffix}.root hy_*/AnalysisResults*.root")
 
     os.system(f"rm -r hy_*")
     os.system(f"rm outputs_hy_*")
+    os.system(f"rm files_to_merge_*")
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description="Arguments")
@@ -81,6 +95,9 @@ if __name__ == "__main__":
     PARSER.add_argument("--suffix", "-s", metavar="text",
                         default="_LHC24_pass1_skimmed",
                         help="output file", required=False)
+    PARSER.add_argument("--n_merged_files", "-n", type=int,
+                        default=1, help="number of output merged AO2D files",
+                        required=False)
     ARGS = PARSER.parse_args()
 
-    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix)
+    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files)
