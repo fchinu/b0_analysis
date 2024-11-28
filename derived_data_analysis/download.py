@@ -7,15 +7,19 @@ import argparse
 import math
 import multiprocessing
 
-def download_from_directory(task_id, input_directory):
+def download_from_directory(task_id, input_directory, is_slim):
     """
     Function to be executed in parallel that downloads all the files for a specific run
     """
 
     print(f"Processing task {task_id}")
     train_id = input_directory.split(sep="/")[-1]
-    os.system(f"alien_find alien://{input_directory} "
-              f"AOD/*/AnalysisResults.root > outputs_{train_id}.txt")
+    if is_slim:
+        os.system(f"echo alien://{input_directory}/"
+                  f"AnalysisResults.root > outputs_{train_id}.txt")
+    else:
+        os.system(f"alien_find alien://{input_directory} "
+                  f"AOD/*/AnalysisResults.root > outputs_{train_id}.txt")
 
     check_unmerged = False
     with open(f"outputs_{train_id}.txt") as file:
@@ -39,7 +43,7 @@ def download_from_directory(task_id, input_directory):
     print(f"Processing task {task_id} - DONE")
 
 
-def download_and_merge(input_file, num_workers, suffix, n_merged_files):
+def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim):
     """
     Main function to download and merge output files from hyperloop
     """
@@ -55,7 +59,10 @@ def download_and_merge(input_file, num_workers, suffix, n_merged_files):
     num_workers = min(num_workers, os.cpu_count())  # Get the number of available CPU cores)
 
     with multiprocessing.Pool(processes=num_workers) as pool:
-        pool.starmap(download_from_directory, enumerate(output_directories))
+        pool.starmap(
+            download_from_directory,
+            [(i, directory, is_slim) for i, directory in enumerate(output_directories)]
+        )
 
     files_to_merge = []
     for train_dir in os.listdir("."):
@@ -98,6 +105,8 @@ if __name__ == "__main__":
     PARSER.add_argument("--n_merged_files", "-n", type=int,
                         default=1, help="number of output merged AO2D files",
                         required=False)
+    PARSER.add_argument("--slim", action="store_true", default=False,
+                        help="slim mode", required=False)
     ARGS = PARSER.parse_args()
 
-    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files)
+    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files, ARGS.slim)
