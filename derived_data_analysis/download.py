@@ -15,8 +15,8 @@ def download_from_directory(task_id, input_directory, is_slim):
     print(f"Processing task {task_id}")
     train_id = input_directory.split(sep="/")[-1]
     if is_slim:
-        os.system(f"echo alien://{input_directory}/"
-                  f"AnalysisResults.root > outputs_{train_id}.txt")
+        os.system(f"alien_find alien://{input_directory} "
+                  f"AnalysisResults.root -r > outputs_{train_id}.txt")
     else:
         os.system(f"alien_find alien://{input_directory} "
                   f"AOD/*/AnalysisResults.root > outputs_{train_id}.txt")
@@ -38,7 +38,9 @@ def download_from_directory(task_id, input_directory, is_slim):
         os.mkdir(train_id)
     for ifile, line in enumerate(lines):
         os.system(f"alien_cp {line} file:{train_id}/AnalysisResults_{ifile:03d}.root")
-        os.system(f"alien_cp {line.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{ifile:03d}.root")
+        if os.system(f"alien_cp {line.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{ifile:03d}.root") != 0:
+            # AO2D not found, let's delete also AnalysisResults.root
+            os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
 
     print(f"Processing task {task_id} - DONE")
 
@@ -84,7 +86,7 @@ def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim)
             os.system(f"o2-aod-merger --input files_to_merge_{bunch}.txt --output "
                       f"AO2D{suffix}_{bunch}.root --max-size 1000000000 --skip-parent-files-list")
     else:
-        os.system(f"o2-aod-merger --input files_to_merge_0.txt --output "
+        os.system(f"o2-aod-merger --input files_to_merge_1.txt --output "
                   f"AO2D{suffix}.root --max-size 1000000000 --skip-parent-files-list")
 
     os.system(f"hadd -f AnalysisResults{suffix}.root hy_*/AnalysisResults*.root")
@@ -106,7 +108,7 @@ if __name__ == "__main__":
                         default=1, help="number of output merged AO2D files",
                         required=False)
     PARSER.add_argument("--slim", action="store_true", default=False,
-                        help="slim mode", required=False)
+                        help="option for slim outputs on hyperloop", required=False)
     ARGS = PARSER.parse_args()
 
     download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files, ARGS.slim)
