@@ -9,7 +9,6 @@ import yaml
 import pandas as pd
 import ROOT
 
-import sys
 sys.path.append('../utils') # pylint: disable=wrong-import-position
 from style_formatter import set_global_style, set_object_style # pylint: disable=import-error
 
@@ -29,9 +28,9 @@ def rebin_df(df, rebin):
     ptmins_orig = df["ptmin"].to_numpy()
     ptmaxs_orig = df["ptmax"].to_numpy()
     ptmins_ok = all(any(
-        math.isclose(pt, pt_orig, rel_tol=1e-6) for pt in ptmins_orig) for pt_orig in ptmins)
+        math.isclose(pt, pt_orig, rel_tol=1e-6) for pt_orig in ptmins_orig) for pt in ptmins)
     ptmaxs_ok = all(any(
-        math.isclose(pt, pt_orig, rel_tol=1e-6) for pt in ptmaxs_orig) for pt_orig in ptmaxs)
+        math.isclose(pt, pt_orig, rel_tol=1e-6) for pt_orig in ptmaxs_orig) for pt in ptmaxs)
 
     if not ptmins_ok or not ptmaxs_ok:
         print("ERROR: pt rebin from config not consistent with pt bins in input files")
@@ -66,8 +65,8 @@ def rebin_df(df, rebin):
                                           df["fr_1_dot5"].to_numpy(),
                                           df["fr_dot5_1"].to_numpy()):
 
-            if (ptmin_orig > ptmin or math.isclose(ptmin_orig, ptmin)) and \
-                (ptmax_orig < ptmax or math.isclose(ptmax_orig, ptmax)):
+            if (ptmin_orig > ptmin or math.isclose(ptmin_orig, ptmin, rel_tol=1e-6)) and \
+                (ptmax_orig < ptmax or math.isclose(ptmax_orig, ptmax, rel_tol=1e-6)):
                 l_xsec[ipt] += xsec
                 l_xsec_min[ipt] += xsec_min
                 l_xsec_max[ipt] += xsec_max
@@ -146,9 +145,9 @@ def convert_to_graph(df, deltay, ff, graph_name, graph_color):
         deltapt = ptmax - ptmin
         ptcent = (ptmax + ptmin) / 2
         ptunc = deltapt / 2
-        diffxsec = xsec / deltapt / deltay / ff
-        diffxsec_min = xsecmin / deltapt / deltay / ff
-        diffxsec_max = xsecmax / deltapt / deltay / ff
+        diffxsec = xsec / deltapt / deltay * ff
+        diffxsec_min = xsecmin / deltapt / deltay * ff
+        diffxsec_max = xsecmax / deltapt / deltay * ff
 
         graph.SetPoint(ipt, ptcent, diffxsec)
         graph.SetPointError(ipt, ptunc, ptunc, diffxsec-diffxsec_min, diffxsec_max-diffxsec)
@@ -202,7 +201,7 @@ def get_ratio_fwd_mid(df_mid, df_fwd, deltay_mid, deltay_fwd, ff_mid, ff_fwd, gr
                                                              df_fwd["fr_dot5_1"].to_numpy())):
         ptcent = (ptmax + ptmin) / 2
         ptunc = (ptmax - ptmin) / 2
-        norm = 1. / deltay_mid * deltay_fwd / ff_mid * ff_fwd
+        norm = 1. / deltay_mid * deltay_fwd * ff_mid / ff_fwd
         ratio = cent_mid / cent_fwd * norm
         ratios_vars = [
             min_sc_mid / min_sc_fwd * norm,
@@ -248,6 +247,8 @@ def plot(config_file):
 
     y_mid, ff_mid = get_rapidity_interval_and_ff(cfg["inputs"]["mid"])
     y_fwd, ff_fwd = get_rapidity_interval_and_ff(cfg["inputs"]["fwd"])
+    ff_mid = cfg["frag_fracs"]["mid"] / ff_mid
+    ff_fwd = cfg["frag_fracs"]["fwd"] / ff_fwd
     deltay_mid = y_mid[1] - y_mid[0]
     deltay_fwd = y_fwd[1] - y_fwd[0]
 
