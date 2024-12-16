@@ -372,11 +372,15 @@ class MlTraining(MlCommon):
         # Save applied model to test set
         test_set_df = train_test_data[2]
         test_set_df = test_set_df.loc[:, self.column_to_save_list]
-        test_set_df["Labels"] = train_test_data[3]
-
         test_set_df["ML_output"] = y_pred_test
 
-        test_set_df.to_parquet(f"{out_dir}/{self.channel}_ModelApplied" f"_pT_{pt_bin[0]}_{pt_bin[1]}.parquet.gzip")
+        test_set_df["Labels"] = train_test_data[3]
+
+        test_set_df_sgn = test_set_df[test_set_df["Labels"] == 1]
+        test_set_df_bkg = test_set_df[test_set_df["Labels"] == 0]
+
+        test_set_df_sgn.to_parquet(f"{out_dir}/{self.channel}_ModelApplied" f"_pT_{pt_bin[0]}_{pt_bin[1]}_signal.parquet.gzip")
+        test_set_df_bkg.to_parquet(f"{out_dir}/{self.channel}_ModelApplied" f"_pT_{pt_bin[0]}_{pt_bin[1]}_bkg.parquet.gzip")
 
         # save model
         if os.path.isfile(f"{out_dir}/ModelHandler_{self.channel}.pickle"):
@@ -494,6 +498,8 @@ class MlApplication(MlCommon):
 
         self.infile_names = config_apply["input"]["file_names"]
         self.model_names = enforce_list(config_apply["input"]["model_names"])
+        self.merge_mc_with_check_decay = config_apply["input"]["merge_mc_with_check_decay"]
+        self.tree_name_check_decay = config_apply["input"]["tree_name_check_decay"]
         self.outdir = config_apply["output"]["dir"]
         self.out_tree_name = config_apply["output"]["tree_name"]
         self.data_tags = config_apply["output"]["data_tags"]
@@ -539,6 +545,21 @@ class MlApplication(MlCommon):
         for infile_name, data_tag in zip(self.infile_names, self.data_tags):
             print(f"Loading and preparing data file {infile_name}: ...", end="\r")
             hdl_data = TreeHandler(file_name=infile_name, tree_name=self.tree_name, folder_name=self.folder_name)
+            if self.merge_mc_with_check_decay:
+                try:
+                    hdl_data_check_decay = TreeHandler(
+                        file_name=infile_name, tree_name=self.tree_name_check_decay, folder_name=self.folder_name
+                    )
+                    cols_to_merge = ["fPdgCodeBeautyMother", "fPdgCodeCharmMother"]
+                    hdl_data.set_data_frame(pd.concat(
+                        [hdl_data.get_data_frame(), hdl_data_check_decay.get_data_frame()[cols_to_merge]],
+                        axis=1
+                    ))
+                except:
+                    print(
+                        "No deacy check tree found, only the main tree will be used for the application"
+                    )
+                    cols_to_merge = []
             hdl_data.slice_data_frame(self.name_pt_var, self.pt_bins, True)
             print(f"Loading and preparing data files {infile_name}: Done!")
 
@@ -557,7 +578,7 @@ class MlApplication(MlCommon):
                 df_data_pt_sel = hdl_data.get_slice(ibin)
                 ypred = model_hdls[ibin].predict(df_data_pt_sel, False)
 
-                df_data_pt_sel = df_data_pt_sel.loc[:, self.column_to_save_list]
+                df_data_pt_sel = df_data_pt_sel.loc[:, self.column_to_save_list + cols_to_merge]
                 df_data_pt_sel["ML_output"] = ypred
 
                 outfile_name = f"{out_dir}/{data_tag}_{self.channel}_pT_{pt_bin[0]}_{pt_bin[1]}_ModelApplied"
