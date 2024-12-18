@@ -1,12 +1,19 @@
 particle: "B0"
 
 inputs:
-  data: [../inputs/pt2_6/Data_pT_2_6_ModelApplied.parquet.gzip,
-         ../inputs/pt6_100/Data_pT_6_100_ModelApplied.parquet.gzip]
-  mc: [../inputs/pt2_6/MCwBkg_pT_2_6_ModelApplied.parquet.gzip,
-       ../inputs/pt6_100/MCwBkg_pT_6_100_ModelApplied.parquet.gzip]
+  data: [ML/application/default/LHC24_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+         ML/application/default/LHC24_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+         ML/application/default/LHC23_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+         ML/application/default/LHC23_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+         ML/application/default/LHC24ao_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+         ML/application/default/LHC24ao_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
+  mc: [ML/application/default/LHC24i3_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+       ML/application/default/LHC24i4_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+       ML/application/default/LHC24i3_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+       ML/application/default/LHC24i4_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+       ]
 
-cutset_file_name: '../config/cutset.yaml'
+cutset_file_name: 'config/cutset.yaml'
 
 fit_configs:
   pt_int:
@@ -15,18 +22,53 @@ fit_configs:
     bkg_funcs: ["expo"]
     mass_limits: [5.00, 5.56]
     use_bkg_templ: true
+    fix_correlated_bkg_to_signal: false
   # below one per pT bin
-  signal_funcs: [["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"]]
-  bkg_funcs: [["expo"], ["expo"], ["expo"], ["expo"], ["expo"]]
-  mass_limits: [[5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56]]
-  use_bkg_templ: [true, true, true, true, true]
+  signal_funcs: [["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"]]
+  bkg_funcs: [["expo"], ["expo"], ["expo"], ["expo"], ["expo"], ["expo"], ["expo"]]
+  mass_limits: [[5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56], [5.00, 5.56]]
+  use_bkg_templ: [true, true, true, true, true, true, true]
+  correlated_bkgs:
+    - name: '$\mathrm{B^0 \rightarrow D^{*-}\pi^+ \rightarrow D^-\pi^+\{\pi^0, \gamma\}}$'
+      beauty_id: 511
+      charm_id: 824
+      br_pdg: 8.0591084e-05 # 2.66e-3 * (30.7e-2 + 1.6e-2) * 9.38e-2
+      br_sim: 0.04589871504152629 # 0.333333333333 * (30.7e-2 + 1.6e-2) * 0.42630385487528344
+
+    - name: '$\mathrm{B^0 \rightarrow D^{*-}\pi^+ \rightarrow D^0\pi^-\pi^+}$'
+      beauty_id: 511
+      charm_id: 413
+      br_pdg: 7.10783654e-05 # 2.66e-3 * 67.7e-2 * 3.947e-2
+      br_sim: 0.20515151515110489 # 0.333333333333 * 67.7e-2 * 0.90909090909
+
+    - name: '$\mathrm{B_s^0 \rightarrow D_s^-\pi^+ \rightarrow K^+K^-\pi^+\pi^+}$'
+      beauty_id: 531
+      charm_id: 431
+      br_pdg: 0.000160026 # 2.98e-3 * 5.37e-2 
+      br_sim: 0.8 # 0.8 * (0.52380952381 + 0.47619047619)
+
+    - name: '$\mathrm{\Lambda_b^0 \rightarrow \Lambda_c^+\pi^- \rightarrow pK^-\pi^+\pi^-}$'
+      beauty_id: 5122
+      charm_id: 4122
+      br_pdg: 0.00030576 # 4.9e-3 * 6.24e-2
+      br_sim: 0.2710551790900291 # 0.8 * 0.33881897386253634
+
+    - name: '$\mathrm{B^0 \rightarrow D^-\rho^+ \rightarrow D^-\pi^+\{\pi^0, \gamma\}}$'
+      beauty_id: 511
+      charm_id: 411
+      br_pdg: 0.00071288 # 7.6e-3 * 9.38e-2
+      br_sim: 0.042630385487528344  # 0.1 * 0.42630385487528344
+
+  signal_br:
+    pdg: 0.000235438 # 2.51e-3 * 9.38e-2
+    sim: 0.17052154195011338 # 0.4 * 0.42630385487528344
+  fix_correlated_bkg_to_signal: [false, false, false, false, false, false, false]
 
 plot_style:
   pt_int:
     n_bins: 56
-  n_bins: [23, 23, 23, 23, 23]
+  n_bins: [56, 56, 56, 56, 56, 56, 56]
 
 outputs:
-  directory: "."
-  suffix: ""
-
+  directory: "fit/outputs/default"
+  suffix: "23_24_full_dataset"

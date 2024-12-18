@@ -3,21 +3,27 @@ common:
   channel: B0ToDPi
   labels: [Bkg, Signal]
   name_pt_var: fPt # name of pT branch in original TTree
-  pt_bins_limits: [2, 16]
+  pt_bins_limits: [0, 6, 100]
   tree_name: O2hfredcandb0lite
   folder_name: DF*
-  column_to_save_list: ["fPt", "fM"]
+  column_to_save_list: ["fPt", "fM", "fFlagMcMatchRec"]
 
 train_ml:
   input:
-    signal_file_name: AOD_ReducedB0Workflow_MC.root
-    bkg_file_name: AOD_ReducedB0Workflow_RealData.root
+    signal_file_name: [
+      derived_data_analysis/Tree_LHC24i3.root,
+      derived_data_analysis/Tree_LHC24i4_1.root
+    ]
+    bkg_file_name: [
+      derived_data_analysis/Tree_LHC23_all.root,
+      derived_data_analysis/Tree_LHC24_pass1_skimmed_1.root
+    ]
 
   pt_bins_limits: null  # to override common pt binning; set to null else
 
   tag: fOriginMcRec
 
-  filt_bkg_mass: "fM < 5.0 or fM > 5.55"
+  filt_bkg_mass: "fM < 5.0 or fM > 5.56"
   downsample_bkg_factor: 1 # value of downSampleBkgFactor set at TTree creation level
 
   seed_split: 42 # seed used for df_bkg sampling and train_test_split(...)
@@ -26,7 +32,7 @@ train_ml:
     # 'equal' -> same number of signal/bkg (not using all the signal available)
     # 'all_signal' -> try to use all the signal + add n_bkg = bkg_factor * n_signal
     bkg_factor: [1.] # list of multipliers for n_signal used to determine n_cand_bkg in the 'all_signal' option
-  test_fraction: 0.3
+  test_fraction: 0.2
 
   training:
     raw_output: false
@@ -37,7 +43,7 @@ train_ml:
         fChi2PCA,
         fDecayLength,
         fDecayLengthXY,
-        fImpactParameter0,
+        fImpactParameterBach,
         fImpactParameterProduct,
         fProng0MlScoreBkg,
         fProng0MlScoreNonprompt,
@@ -52,9 +58,17 @@ train_ml:
         "min_child_weight": 4,
         "n_jobs": 4,
         "tree_method": hist,
+      },
+      {
+        "max_depth": 3,
+        "learning_rate": 0.045,
+        "n_estimators": 800,
+        "min_child_weight": 4,
+        "n_jobs": 4,
+        "tree_method": hist,
       }]
     hyper_pars_opt:
-      activate: false
+      activate: true
       ntrials: 25
       njobs: 4
       timeout: 1800
@@ -69,7 +83,7 @@ train_ml:
         }
 
   output:
-    dir: trainings/B0
+    dir: ML/training
     log_file: log.txt # name of log file for each model training
     # list of variables saved in the dataframes with the applied models
     
@@ -81,11 +95,22 @@ train_ml:
 
 apply_ml:
   input:
-    file_names: [AOD_ReducedB0Workflow_RealData_or_McDataWithBkg.root,
-                 AOD_ReducedB0Workflow_RealData_or_McDataWithBkg.root]
-    model_names: ["path_to_trained_BDT_model.pickle"]
-
+    file_names: [ 
+      derived_data_analysis/Tree_LHC24i3.root,
+      derived_data_analysis/Tree_LHC24i4_1.root,
+      derived_data_analysis/Tree_LHC23_pass4_skimmed.root,
+      derived_data_analysis/Tree_LHC24_pass1_skimmed_1.root
+    ]
+    model_names: ["ML/training/pt0_6/ModelHandler_B0ToDPi_pT_0_6.pickle",
+                  "ML/training/pt6_100/ModelHandler_B0ToDPi_pT_6_100.pickle"]
+    merge_mc_with_check_decay: true
+    tree_name_check_decay: "O2hfredb0mccheck"
   output:
-    dir: applications/B0
+    dir: ML/application
     tree_name: treeB0
-    data_tags: [LHC23_24, LHC23c1]
+    data_tags: [
+                  LHC24i3,
+                  LHC24i4,
+                  LHC23,
+                  LHC24
+               ]

@@ -141,6 +141,13 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
 
     df_mc_prd_bkg = df_mc.query(f"fFlagMcMatchRec == {flag_mc_match_rec}")  # prd = partly reco decays
     df_mc_sig = df_mc.query("fFlagMcMatchRec == -1 or fFlagMcMatchRec == 1")
+
+    dfs_prd_bkg = []
+    correlated_bkgs = cfg["fit_configs"]["correlated_bkgs"]
+    for bkg in correlated_bkgs:
+        df_prd_bkg = df_mc.query(f"fFlagMcMatchRec == {flag_mc_match_rec} and fPdgCodeBeautyMother == {bkg['beauty_id']} and fPdgCodeCharmMother == {bkg['charm_id']}")
+        dfs_prd_bkg.append(df_prd_bkg)
+
     # define output file
     outdir = cfg["outputs"]["directory"]
     outfile_name = os.path.join(outdir,
@@ -182,12 +189,14 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                                nbins=cfg["plot_style"]["pt_int"]["n_bins"])
         bkg_funcs = cfg["fit_configs"]["pt_int"]["bkg_funcs"]
         label_bkg_pdf = ["Comb. bkg"]
+        data_hdls_prd_bkg = []
         if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
-            data_hdl_prd_bkg = DataHandler(df_mc_prd_bkg, var_name="fM",
-                                           limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
-                                           nbins=cfg["plot_style"]["pt_int"]["n_bins"])
-            bkg_funcs.append("kde_grid")
-            label_bkg_pdf.append("Partly reco decays")
+            for i_bkg, (bkg, df_prd_bkg) in enumerate(zip(correlated_bkgs, dfs_prd_bkg)):
+                data_hdls_prd_bkg.append(DataHandler(df_prd_bkg, var_name="fM",
+                                               limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
+                                               nbins=cfg["plot_style"]["pt_int"]["n_bins"]))
+                bkg_funcs.insert(i_bkg, "kde_grid")
+                label_bkg_pdf.insert(i_bkg, bkg["name"])
 
         fitter_ptint = F2MassFitter(data_hdl,
                                     cfg["fit_configs"]["pt_int"]["signal_funcs"],
@@ -197,7 +206,19 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                                     label_bkg_pdf=label_bkg_pdf)
 
         if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
-            fitter_ptint.set_background_kde(1, data_hdl_prd_bkg)
+            for i_bkg, (bkg, data_hdl_prd_bkg) in enumerate(zip(correlated_bkgs, data_hdls_prd_bkg)):
+                fitter_ptint.set_background_kde(i_bkg, data_hdl_prd_bkg)
+                if i_bkg == 0:
+                    if cfg["fit_configs"]["pt_int"]["fix_correlated_bkg_to_signal"]:
+                        fitter_ptint.fix_bkg_frac_to_signal_pdf(
+                            i_bkg, 0,
+                            data_hdl_prd_bkg.get_norm() * bkg["br_pdg"] / bkg["br_sim"] /(data_hdl_mc.get_norm() * cfg["fit_configs"]["signal_br"]["pdg"] / cfg["fit_configs"]["signal_br"]["sim"] )
+                        )
+                    continue
+                fitter_ptint.fix_bkg_frac_to_bkg_pdf(
+                    i_bkg, 0,
+                    data_hdl_prd_bkg.get_norm() * bkg["br_pdg"] / bkg["br_sim"] /(data_hdls_prd_bkg[0].get_norm() * correlated_bkgs[0]["br_pdg"] / correlated_bkgs[0]["br_sim"] )
+                )
 
         fitter_ptint.set_signal_initpar(0, "sigma", 0.03, limits=[0.01, 0.08])
         fitter_ptint.set_particle_mass(0, pdg_id=pdg_id)
@@ -271,12 +292,15 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
 
         bkg_funcs = cfg["fit_configs"]["bkg_funcs"][ipt]
         label_bkg_pdf = ["Comb. bkg"]
-        if cfg["fit_configs"]["use_bkg_templ"][ipt]:
-            data_hdl_prd_bkg = DataHandler(df_mc_prd_bkg_pt, var_name="fM",
-                                           limits=cfg["fit_configs"]["mass_limits"][ipt],
-                                           nbins=cfg["plot_style"]["n_bins"][ipt])
-            bkg_funcs.append("kde_grid")
-            label_bkg_pdf.append("Partly reco decays")
+        data_hdls_prd_bkg = []
+        if cfg["fit_configs"]["pt_int"]["use_bkg_templ"]:
+            dfs_prd_bkg_pt = [df.query(f"{pt_min} < fPt < {pt_max}") for df in dfs_prd_bkg]
+            for i_bkg, (bkg, df_prd_bkg) in enumerate(zip(correlated_bkgs, dfs_prd_bkg_pt)):
+                data_hdls_prd_bkg.append(DataHandler(df_prd_bkg, var_name="fM",
+                                               limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
+                                               nbins=cfg["plot_style"]["pt_int"]["n_bins"]))
+                bkg_funcs.insert(i_bkg, "kde_grid")
+                label_bkg_pdf.insert(i_bkg, bkg["name"])
 
         fitter_pt = F2MassFitter(data_hdl,
                                  cfg["fit_configs"]["signal_funcs"][ipt],
@@ -286,12 +310,26 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                                  label_bkg_pdf=label_bkg_pdf
                                  )
         if cfg["fit_configs"]["use_bkg_templ"][ipt]:
-            fitter_pt.set_background_kde(1, data_hdl_prd_bkg)
+            for i_bkg, (bkg, data_hdl_prd_bkg) in enumerate(zip(correlated_bkgs, data_hdls_prd_bkg)):
+                fitter_pt.set_background_kde(i_bkg, data_hdl_prd_bkg)
+                if i_bkg == 0:
+                    if cfg["fit_configs"]["fix_correlated_bkg_to_signal"][ipt]:
+                        fitter_pt.fix_bkg_frac_to_signal_pdf(
+                            i_bkg, 0,
+                            data_hdl_prd_bkg.get_norm() * bkg["br_pdg"] / bkg["br_sim"] /(data_hdl_mc.get_norm() * cfg["fit_configs"]["signal_br"]["pdg"] / cfg["fit_configs"]["signal_br"]["sim"] )
+                        )
+                    continue
+                fitter_pt.fix_bkg_frac_to_bkg_pdf(
+                    i_bkg, 0,
+                    data_hdl_prd_bkg.get_norm() * bkg["br_pdg"] / bkg["br_sim"] /(data_hdls_prd_bkg[0].get_norm() * correlated_bkgs[0]["br_pdg"] / correlated_bkgs[0]["br_sim"] )
+                )
 
-        fitter_pt.set_signal_initpar(0, "sigma", 0.03, limits=[0.01, 0.8])
-        fitter_pt.set_particle_mass(0, pdg_id=pdg_id)
-        fitter_pt.set_signal_initpar(0, "frac", 0.05, limits=[0., 1.])
-        fitter_pt.set_background_initpar(0, "frac", 0.8, limits=[0., 1.])
+        fitter_pt.set_signal_initpar(0, "sigma", 0.03, limits=[0.01, 0.1])
+        fitter_pt.set_particle_mass(0, pdg_id=pdg_id, limits=[5., 5.56])
+        fitter_pt.set_signal_initpar(0, "frac", 0.1, limits=[0., 1.])
+        if not cfg["fit_configs"]["fix_correlated_bkg_to_signal"][ipt]:
+            fitter_pt.set_background_initpar(0, "frac", 0.05, limits=[0., 1.])
+        fitter_pt.set_background_initpar(5, "lam", -1.2, limits=[-10., 10.])
         result = fitter_pt.mass_zfit()
         if result.converged:
             fig, axs = fitter_pt.plot_mass_fit(style="ATLAS",
