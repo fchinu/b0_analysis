@@ -33,6 +33,15 @@ def main(config_file_name):
     )
     int_lumi = n_events/config['lumi']['tvx_cross_section']
 
+    lumi_before_bc, lumi_after_bc = 0, 0
+    for file in analysis_results_files:
+        infile = ROOT.TFile.Open(file)
+        lumi_before_bc += infile.Get(f"{config['lumi']['folder_bc_cuts']}/hLumiTVX").Integral()
+        lumi_after_bc += infile.Get(f"{config['lumi']['folder_bc_cuts']}/hLumiTVXafterBCcuts").Integral()
+        infile.Close()
+    
+    int_lumi = int_lumi * lumi_after_bc / lumi_before_bc
+
     br_b_to_d = config['br']['b0_todminuspi']
     br_d_to_pikpi = config['br']['dplus_tokpipi']
 

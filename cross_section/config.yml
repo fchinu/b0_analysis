@@ -1,11 +1,14 @@
-rawyield_file: fit/outputs/B0_mass.root
-efficiency_file: efficiency/efficiency.root
-output_file: cross_section/cross_section.root
+rawyield_file: fit/outputs/default/B0_mass23_24_full_dataset.root
+efficiency_file: efficiency/efficiency_i3_i4_from_bdt_test.root
+output_file: cross_section/cross_section_full_23_24_with_bc_cuts.root
 
 lumi:
-  analysis_results_files: ['inputs/data/AnalysisResults_LHC23_pass4_skimmed.root',
-                          'inputs/data/AnalysisResults_LHC24_pass1_skimmed.root']
+  analysis_results_files: [
+                          'inputs/24_separate/data/AnalysisResults_LHC24_pass1_skimmed.root',
+                          'inputs/24_separate/data/AnalysisResults_LHC23_pass4_skimmed.root'
+                          ]
   zorro_folder: 'hf-data-creator-charm-had-pi-reduced/Zorro'
+  folder_bc_cuts: 'bc-selection-task'
   triggers_of_interest: ['fHfBeauty4P']
   h_collisions_path: 'hf-candidate-creator-3prong/hCollisions'
   tvx_cross_section: 59400000000 # pb
