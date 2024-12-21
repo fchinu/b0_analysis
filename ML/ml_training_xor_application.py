@@ -189,7 +189,7 @@ class MlTraining(MlCommon):
             ).get_subset(f"{self.tag} == 0 and ({self.filt_bkg_mass})")
         hdl_sig = TreeHandler(
             file_name=self.sig_infile_name, tree_name=self.tree_name, folder_name=self.folder_name
-            ).get_subset(f"{self.tag} == 1")
+            ).get_subset(f"{self.tag} == 1 and fFlagWrongCollision == 0")
 
         hdl_bkg.slice_data_frame(self.name_pt_var, self.pt_bins, True)
         hdl_sig.slice_data_frame(self.name_pt_var, self.pt_bins, True)
