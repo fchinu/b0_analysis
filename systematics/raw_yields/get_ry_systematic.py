@@ -12,8 +12,6 @@ import os
 import numpy as np
 import yaml
 import uproot
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from matplotlib.patches import Rectangle
