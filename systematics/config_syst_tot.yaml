@@ -1,0 +1,14 @@
+inputs:
+  cross_section_file: cross_section/cross_section_full_23_24_with_bc_cuts_chebpol2.root
+  syst_files:
+    bdt: systematics/bdt/outputs/default/bdt_systematic.root
+    rawy: systematics/raw_yields/outputs/default/raw_yields_systematic.root
+
+lumi_unc: 0.1
+br:
+  - value: 2.51e-3 # B0 -> D- pi+
+    unc: 0.08e-3
+  - value: 9.38e-2 # D- -> K+ pi- pi-
+    unc: 0.16e-2
+
+output_name: systematics/cross_section_default_w_syst.root
