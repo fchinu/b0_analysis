@@ -1,25 +1,29 @@
-reference_fits: ../../fit/anchored_pidvars/B0_mass_anchor_pidvars_chebpol2.root
+reference_fits: fit/outputs/default_chebpol2/B0_mass23_24_full_dataset.root                # file with central values
     
 inputs:
-    data: [../../ML/applications/anchored_pid/LHC23_pass4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC23_pass4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC23_pass4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC24_pass1_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC24_pass1_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC24_pass1_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC24ao_pass1_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC24ao_pass1_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-           ../../ML/applications/anchored_pid/LHC24ao_pass1_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip]
-    mc: [../../ML/applications/anchored_pid/LHC24i3_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-         ../../ML/applications/anchored_pid/LHC24i3_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-         ../../ML/applications/anchored_pid/LHC24i3_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
-         ../../ML/applications/anchored_pid/LHC24i4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-         ../../ML/applications/anchored_pid/LHC24i4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-         ../../ML/applications/anchored_pid/LHC24i4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip]
+  data: [ ML/application/default/LHC23_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+          ML/application/default/LHC23_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+          ML/application/default/LHC24_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+          ML/application/default/LHC24_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+          ML/application/default/LHC24ao_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+          ML/application/default/LHC24ao_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip
+          ]
 
-    cutset: ../../config/cutset.yaml
+  mc:   [ ML/application/default/LHC24i3_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+          ML/application/default/LHC24i3_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+          ML/application/default/LHC24i4_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+          ML/application/default/LHC24i4_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip
+          ]
 
-output_dir: systematics/raw_yields/outputs              # output directory
+  cutset: config/cutset.yaml
+
+multiprocessing:
+  max_workers: 4
+  zfit_cpus:
+    intra: 30
+    inter: 30
+
+output_dir: systematics/raw_yields/outputs/test              # output directory
 save_all_fits: true                                     # whether to save all fits figures
 output_dir_fits: fits                                   # append to output_dir
 
@@ -59,9 +63,9 @@ signal_br:
   sim: 0.17052154195011338 # 0.4 * 0.42630385487528344
 
 multitrial:
-    pt_bins: [0]                                        # list of pt bins, set null if you want to keep them all
-    mins: [4.90, 4.92, 4.96]                            # lower fit limit
-    maxs: [5.66, 5.64, 5.62]                            # upper fit limit
+    pt_bins: [0, 1]                                        # list of pt bins, set null if you want to keep them all
+    mins: [4.90] #, 4.92, 4.96]                            # lower fit limit
+    maxs: [5.66] #, 5.64, 5.62]                            # upper fit limit
     sgn_funcs: [[gaussian]]                             # signal functions
     bkg_funcs: [[expo], [chebpol2]]                     # bkg functions
     sigma: [free]                                       # free, fixed, fixed_plus_unc, fixed_minus_unc, fixed_plus_XX_perc, fixed_minus_XX_perc
@@ -71,4 +75,4 @@ multitrial:
     fix_correlated_bkg_to_signal: [true, false]         # fix relative normalisation of correlated backgrounds to signal
     bincounting_nsigma: []                              # nsigmas for bin counting raw yield extraction
 
-assigned_syst: [0.1,]                                   # assigned systematic uncertainties
+assigned_syst: [0.1,0.1]                                   # assigned systematic uncertainties

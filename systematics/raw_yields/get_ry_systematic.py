@@ -9,6 +9,8 @@ import re
 import argparse
 import itertools
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # pylint: disable=wrong-import-position
+from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import yaml
 import uproot
@@ -16,6 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from matplotlib.patches import Rectangle
 import pandas as pd
+import zfit
 from flarefly.data_handler import DataHandler
 from flarefly.fitter import F2MassFitter
 from flarefly.utils import Logger
@@ -259,7 +262,7 @@ def get_input_data(cfg, pt_mins, pt_maxs, bdt_cut_mins, bdt_cut_maxs):  # pylint
         # dfs for weighted average
         dfs_prd_bkg_sampled = []
         for frac, df_bkg in zip(fracs_pt_norm, dfs_prd_bkg_orig_pt):
-            dfs_prd_bkg_sampled.append(df_bkg.sample(frac=frac))
+            dfs_prd_bkg_sampled.append(df_bkg.sample(frac=frac, random_state=42))
 
         dfs_prd_bkg_av.append(pd.concat(dfs_prd_bkg_sampled))
 
@@ -327,7 +330,8 @@ def build_data_handlers(trial, df_pt, df_mc_prd_bkg_pt, df_mc_prd_bkg_av_pt):
     """
     # data
     data_hdl = DataHandler(df_pt, var_name="fM",
-                           limits=[trial["mins"], trial["maxs"]])
+                           limits=[trial["mins"], trial["maxs"]],
+                           nbins=round((trial["maxs"]-trial["mins"])/0.01))
 
     # mc partly reco decays
     data_hdl_bkg = []
@@ -335,10 +339,12 @@ def build_data_handlers(trial, df_pt, df_mc_prd_bkg_pt, df_mc_prd_bkg_av_pt):
         if trial["bkg_templ_opt"] == 0:
             for df_mc in df_mc_prd_bkg_pt:
                 data_hdl_bkg.append(
-                    DataHandler(df_mc, var_name="fM", limits=[trial["mins"], trial["maxs"]]))
+                    DataHandler(df_mc, var_name="fM", limits=[trial["mins"], trial["maxs"]],
+                                nbins=round((trial["maxs"]-trial["mins"])/0.01)))
         else:
             data_hdl_bkg.append(
-                DataHandler(df_mc_prd_bkg_av_pt, var_name="fM", limits=[trial["mins"], trial["maxs"]]))
+                DataHandler(df_mc_prd_bkg_av_pt, var_name="fM", limits=[trial["mins"], trial["maxs"]],
+                            nbins=round((trial["maxs"]-trial["mins"])/0.01)))
     else:
         data_hdl_bkg = None
 
@@ -432,8 +438,8 @@ def build_fitter(
 
     icombbkg = len(data_hdl_prd_bkg)
     fitter.set_background_initpar(icombbkg, "lam", -1.2, limits=[-10., 10.])
-    fitter.set_background_initpar(icombbkg, "c1", -0.05, limits=[-0.1, 0.])
-    fitter.set_background_initpar(icombbkg, "c2", 0.008, limits=[0.000, 0.05])
+    fitter.set_background_initpar(icombbkg, "c1", -0.05, limits=[-2., 2.])
+    fitter.set_background_initpar(icombbkg, "c2", 0.008, limits=[0.000, 0.2])
 
     return fitter
 
@@ -581,9 +587,35 @@ def dump_results_to_root(dfs, cfg, h_rawy, cut_set):
         f["assigned_syst"] = (np.array(assigned_syst), pt_edges)
 
 
-def multi_trial(config_file_name: str):  # pylint: disable=too-many-locals, too-many-statements
+def process_trial(args):
+    """Process a single trial."""
+    trial, dfs_data, dfs_mc_prd_bkg, dfs_mc_prd_bkg_av, h_mean_mc, h_sigma_mc, fracs_prd_bkg, cfg, i_pt, pt_min, pt_max, i_trial = args
+
+    suffix = f"{pt_min*10:.0f}_{pt_max*10:.0f}_{i_trial}"
+    mean_with_unc = [h_mean_mc.values()[i_pt], h_mean_mc.errors()[i_pt]]
+    sigma_with_unc = [h_sigma_mc.values()[i_pt], h_sigma_mc.errors()[i_pt]]
+
+    data_hdl, data_hdl_prd_bkg = build_data_handlers(
+        trial, dfs_data[i_pt], dfs_mc_prd_bkg[i_pt], dfs_mc_prd_bkg_av[i_pt]
+    )
+
+    fitter = build_fitter(
+        trial, data_hdl, data_hdl_prd_bkg, mean_with_unc, sigma_with_unc,
+        suffix, cfg, fracs_prd_bkg[i_pt]
+    )
+
+    trial_dict = fit(fitter, cfg, i_trial, suffix)
+    trial_renamed = trial.copy()
+    trial_renamed['sigma_type'] = trial_renamed.pop('sigma')
+    trial_renamed['mean_type'] = trial_renamed.pop('mean')
+    trial_dict.update(trial_renamed)
+
+    return trial_dict
+
+
+def multi_trial(config_file_name: str, draw_only: bool = False):
     """
-    Perform multiple trials based on the given configuration file.
+    Perform multiple trials based on the given configuration file in parallel.
 
     Parameters:
         config_file_name (str): The path to the configuration file.
@@ -591,18 +623,22 @@ def multi_trial(config_file_name: str):  # pylint: disable=too-many-locals, too-
         None
     """
 
-    # load config
+    # Load configuration and reference results
     with open(config_file_name, "r", encoding="utf-8") as file_config:
         cfg = yaml.safe_load(file_config)
 
-    # load reference result
+    zfit.run.set_cpus_explicit(
+        intra=cfg["multiprocessing"]["zfit_cpus"]["intra"],
+        inter=cfg["multiprocessing"]["zfit_cpus"]["inter"],
+    )
+
     with uproot.open(cfg["reference_fits"]) as file_ref:
         h_rawy = file_ref["h_rawyields"]
         h_sigma = file_ref["h_sigmas"]
         h_mean_mc = file_ref["h_means_mc"]
         h_sigma_mc = file_ref["h_sigmas_mc"]
 
-    # load cut set
+    # Load cut set
     with open(cfg["inputs"]["cutset"], "r", encoding="utf-8") as file_cutset:
         cut_set = yaml.safe_load(file_cutset)
 
@@ -611,74 +647,69 @@ def multi_trial(config_file_name: str):  # pylint: disable=too-many-locals, too-
     bdt_cut_mins = cut_set["ML_output"]["mins"]
     bdt_cut_maxs = cut_set["ML_output"]["maxs"]
 
-    # check if only one signal function is used per trial
+    # Check if only one signal function is used per trial
     multitrial_cfg = cfg["multitrial"]
     for signal_func in multitrial_cfg["sgn_funcs"]:
         if isinstance(signal_func, list) and len(signal_func) > 1:
             Logger("Only one signal function is allowed per trial", "FATAL")
 
-    # define all the trials
+    # Define all the trials
     trials = list(itertools.product(*(multitrial_cfg[var] for var in MULTITRIAL_PARAMS)))
     trials = [dict(zip(MULTITRIAL_PARAMS, trial)) for trial in trials]
 
-    # get the input data
+    # Get input data
     dfs_data, dfs_mc_prd_bkg, dfs_mc_prd_bkg_av, fracs_prd_bkg = get_input_data(
         cfg, pt_mins, pt_maxs, bdt_cut_mins, bdt_cut_maxs
     )
 
-    rms_shifts = []  # sum in quadrature of the rms and shifts of the raw yield distributions
     dfs = []
-
     idx_assigned_syst = 0
+    print(pt_mins, pt_maxs)
+
     for i_pt, (pt_min, pt_max) in enumerate(zip(pt_mins, pt_maxs)):
         if multitrial_cfg["pt_bins"] is not None and i_pt not in multitrial_cfg["pt_bins"]:
-            rms_shifts.append(0)
             dfs.append(None)
             continue
+        if not draw_only:
 
-        trial_rows = []
-        for i_trial, trial in enumerate(trials):
-            print(trial)
-            data_hdl, data_hdl_prd_bkg = build_data_handlers(
-                trial, dfs_data[i_pt], dfs_mc_prd_bkg[i_pt], dfs_mc_prd_bkg_av[i_pt])
+            # Prepare arguments for parallel execution of trials
+            args = [
+                (trial, dfs_data, dfs_mc_prd_bkg, dfs_mc_prd_bkg_av, h_mean_mc, h_sigma_mc, fracs_prd_bkg, cfg, i_pt, pt_min, pt_max, i_trial)
+                for i_trial, trial in enumerate(trials)
+            ]
 
-            suffix = f"{pt_min*10:.0f}_{pt_max*10:.0f}_{i_trial}"
-            mean_with_unc = [h_mean_mc.values()[i_pt], h_mean_mc.errors()[i_pt]]
-            sigma_with_unc = [h_sigma_mc.values()[i_pt], h_sigma_mc.errors()[i_pt]]
+            # Parallelize the trials
+            with ProcessPoolExecutor(max_workers=cfg["multiprocessing"]["max_workers"]) as executor:
+                trial_results = list(executor.map(process_trial, args))
 
-            fitter = build_fitter(
-                trial, data_hdl, data_hdl_prd_bkg, mean_with_unc, sigma_with_unc,
-                suffix, cfg, fracs_prd_bkg[i_pt]
+            # Save results
+            df_trials = pd.DataFrame(trial_results)
+            if not os.path.exists(cfg["output_dir"]):
+                os.makedirs(cfg["output_dir"])
+            df_trials.to_parquet(
+                os.path.join(cfg["output_dir"], f"raw_yields_{pt_min*10:.0f}_{pt_max*10:.0f}.parquet")
             )
-
-            trial_dict = fit(fitter, cfg, i_trial, suffix)
-            trial_renamed = trial.copy()
-            trial_renamed['sigma_type'] = trial_renamed.pop('sigma')
-            trial_renamed['mean_type'] = trial_renamed.pop('mean')
-            trial_dict.update(trial_renamed)
-            trial_rows.append(trial_dict)
-
-        # save the results as pandas dataframe
-        df_trials = pd.DataFrame(trial_rows)
-        if not os.path.exists(cfg["output_dir"]):
-            os.makedirs(cfg["output_dir"])
-        df_trials.to_parquet(
-            os.path.join(cfg["output_dir"], f"raw_yields_{pt_min*10:.0f}_{pt_max*10:.0f}.parquet")
-        )
+        else:
+            df_trials = pd.read_parquet(
+                os.path.join(cfg["output_dir"], f"raw_yields_{pt_min*10:.0f}_{pt_max*10:.0f}.parquet")
+            )
         dfs.append(df_trials)
 
+        # Draw results
         draw_multitrial(df_trials, cfg, pt_min, pt_max, idx_assigned_syst, h_rawy, h_sigma)
         idx_assigned_syst += 1
-    dump_results_to_root(dfs, cfg, h_rawy, cut_set)
 
+    dump_results_to_root(dfs, cfg, h_rawy, cut_set)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Multitrial B mesons')
     parser.add_argument('--configFile', '-c', metavar='text',
                         help='Path to the configuration file')
+    parser.add_argument('--draw-only', action='store_true',
+                        help='Draw only the results')
     args = parser.parse_args()
 
     # "bincounting_nsigma" removed so that we do not fit multiple times for each nsigma
     MULTITRIAL_PARAMS = ["mins", "maxs", "sgn_funcs", "bkg_funcs", "sigma", "mean",
                          "use_bkg_templ", "bkg_templ_opt", "fix_correlated_bkg_to_signal"]
-    multi_trial(args.configFile)
+    multi_trial(args.configFile, args.draw_only)
