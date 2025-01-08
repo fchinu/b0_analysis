@@ -280,7 +280,7 @@ def plot(config_file):
     leg.Draw()
     frame_ratio = canvas.cd(2).DrawFrame(
         0., 0.,
-        graph_mid.GetPointX(graph_mid.GetN()-1)+10, 4.,
+        graph_mid.GetPointX(graph_mid.GetN()-1)+10, 8.,
         ";#it{p}_{T} (GeV/#it{c});Ratio mid / fwd"
     )
     line_at_one.Draw()

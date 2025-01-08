@@ -1,0 +1,17 @@
+inputs:
+  mid: fonll_bhadron_nnpdfs_y05_13dot6tev.txt
+  fwd: fonll_bhadron_nnpdfs_y20_25_13tev.txt
+
+frag_fracs:
+  mid: 0.41
+  fwd: 0.41
+
+rebin_pt:
+  enable: True
+  ptlimits: [2., 4., 6., 8., 10., 14., 23.5]
+
+legend:
+  mid: "|#it{y}| < 0.5"
+  fwd: "2.0 < #it{y} < 2.5"
+
+output: fonll_bhadron_nnpdfs_y05_y20_25_13tev_13dot6tev.root
