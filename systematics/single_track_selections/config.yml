@@ -1,0 +1,52 @@
+particle: B0
+
+selections:
+  tpc_clusters:
+    var_names: ["fTpcNClsCrossedRowsDmesProngMin", "fTpcNClsCrossedRowsBach"]
+    threshold_dir: lower
+    thresholds: [100, 120]
+  its_clusters:
+    var_names: ["fItsNClsDmesProngMin", "fItsNClsBach"]
+    threshold_dir: lower
+    thresholds: [7]
+  tpc_chi2:
+    var_names: ["fTpcChi2NClDmesProngMax", "fTpcChi2NClBach"]
+    threshold_dir: upper
+    thresholds: [3]
+
+inputs: 
+  data: [
+          ML/application/default_finer_pt_high_pt/LHC24_pass1_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC24_pass1_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC24_pass1_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC23_pass4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC23_pass4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC23_pass4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC24ao_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC24ao_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+          ML/application/default_finer_pt_high_pt/LHC24ao_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip
+          ]
+  mc: [
+        ML/application/default_finer_pt_high_pt/LHC24i3_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+        ML/application/default_finer_pt_high_pt/LHC24i3_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+        ML/application/default_finer_pt_high_pt/LHC24i3_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+        ML/application/default_finer_pt_high_pt/LHC24i4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+        ML/application/default_finer_pt_high_pt/LHC24i4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+        ML/application/default_finer_pt_high_pt/LHC24i4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+       ]
+
+raw_yields_suffix: 23_24_full_dataset
+efficiencies_file_name: efficiency.root
+cross_section_file_name: cross_section.root
+
+configs:
+  cutset: config/cutset.yaml
+  fit: fit/config_fit_finer_pt_high_pt.yml
+  efficiency: efficiency/config_eff_finer_pt_high_pt.yaml
+  cross_section: cross_section/config_chebpol2_finer_pt_high_pt.yml
+
+max_workers: 2
+
+assigned_syst: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+
+output_dir: systematics/single_track_selections/default_finer_pt_high_pt
