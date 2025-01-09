@@ -27,27 +27,38 @@ if __name__ == '__main__':
     data_file.Close()
 
     # Get CMS results
-    cms_file = ROOT.TFile.Open('cms/HEPData-ins1485195-v1-Table_1.root')
-    g_cms_1p45 = ROOT.TGraphAsymmErrors()
-    g_cms_2p1 = ROOT.TGraphAsymmErrors()
+    cms_file = ROOT.TFile.Open('cms/cms_bplus_13_tev_table_2.root')
+    g_stat_cms_1p45 = ROOT.TGraphAsymmErrors()
+    g_stat_cms_2p1 = ROOT.TGraphAsymmErrors()
+    g_syst_cms_1p45 = ROOT.TGraphAsymmErrors()
+    g_syst_cms_2p1 = ROOT.TGraphAsymmErrors()
 
-    h_central_values = cms_file.Get('Table 1/Hist2D_y1')
-    h_uperrs = cms_file.Get('Table 1/Hist2D_y1_e1plus')
-    h_downerrs = cms_file.Get('Table 1/Hist2D_y1_e1minus')
-    for i in range(1, h_central_values.GetNbinsX()+1):
-        if h_central_values.GetXaxis().GetBinCenter(i) < 17:
-            g_cms_1p45.SetPoint(i-1, h_central_values.GetXaxis().GetBinCenter(i), h_central_values.GetBinContent(i, 1))
-            g_cms_1p45.SetPointError(i-1, h_central_values.GetXaxis().GetBinWidth(i)/2, h_central_values.GetXaxis().GetBinWidth(i)/2, h_downerrs.GetBinContent(i, 1), h_uperrs.GetBinContent(i, 1))
+    g_stat_cms = cms_file.Get('g_stat')
+    g_syst_cms = cms_file.Get('g_syst')
+    for i in range(g_stat_cms.GetN()):
+        if g_stat_cms.GetPointX(i) < 17:
+            g_stat_cms_1p45.SetPoint(i-1, g_stat_cms.GetPointX(i), g_stat_cms.GetPointY(i))
+            g_stat_cms_1p45.SetPointError(i-1, g_stat_cms.GetErrorXlow(i), g_stat_cms.GetErrorXhigh(i), g_stat_cms.GetErrorYlow(i), g_stat_cms.GetErrorYhigh(i))
+            g_syst_cms_1p45.SetPoint(i-1, g_syst_cms.GetPointX(i), g_syst_cms.GetPointY(i))
+            g_syst_cms_1p45.SetPointError(i-1, g_syst_cms.GetErrorXlow(i)/2, g_syst_cms.GetErrorXhigh(i)/2, g_syst_cms.GetErrorYlow(i), g_syst_cms.GetErrorYhigh(i))
         else:
-            g_cms_2p1.SetPoint(i-1, h_central_values.GetXaxis().GetBinCenter(i), h_central_values.GetBinContent(i, 1))
-            g_cms_2p1.SetPointError(i-1, h_central_values.GetXaxis().GetBinWidth(i)/2, h_central_values.GetXaxis().GetBinWidth(i)/2, h_downerrs.GetBinContent(i, 1), h_uperrs.GetBinContent(i, 1))
+            g_stat_cms_2p1.SetPoint(i-1, g_stat_cms.GetPointX(i), g_stat_cms.GetPointY(i))
+            g_stat_cms_2p1.SetPointError(i-1, g_stat_cms.GetErrorXlow(i), g_stat_cms.GetErrorXhigh(i), g_stat_cms.GetErrorYlow(i), g_stat_cms.GetErrorYhigh(i))
+            g_syst_cms_2p1.SetPoint(i-1, g_syst_cms.GetPointX(i), g_syst_cms.GetPointY(i))
+            g_syst_cms_2p1.SetPointError(i-1, g_syst_cms.GetErrorXlow(i)/2, g_syst_cms.GetErrorXhigh(i)/2, g_syst_cms.GetErrorYlow(i), g_syst_cms.GetErrorYhigh(i))
     cms_file.Close()
 
-    g_cms_1p45.Scale(1./2.9) # divide by rapidity range
-    g_cms_2p1.Scale(1./4.2) # divide by rapidity range
+    g_stat_cms_1p45.Scale(1./2.9) # divide by rapidity range
+    g_stat_cms_2p1.Scale(1./4.2) # divide by rapidity range
 
-    g_cms_1p45.Scale(1.e6) # convert to pb
-    g_cms_2p1.Scale(1.e6) # convert to pb
+    g_stat_cms_1p45.Scale(1.e6) # convert to pb
+    g_stat_cms_2p1.Scale(1.e6) # convert to pb
+
+    g_syst_cms_1p45.Scale(1./2.9) # divide by rapidity range
+    g_syst_cms_2p1.Scale(1./4.2) # divide by rapidity range
+
+    g_syst_cms_1p45.Scale(1.e6) # convert to pb
+    g_syst_cms_2p1.Scale(1.e6) # convert to pb
 
     # Set the style
     h_stat.SetMarkerStyle(ROOT.kFullCircle)
@@ -65,17 +76,31 @@ if __name__ == '__main__':
     for i in range(0, g_syst.GetN()):
         g_syst.SetPointError(i, g_syst.GetErrorX(i)/2, g_syst.GetErrorY(i))
 
-    g_cms_1p45.SetMarkerStyle(ROOT.kOpenDiamond)
-    g_cms_1p45.SetMarkerSize(1.5)
-    g_cms_1p45.SetMarkerColor(ROOT.kRed)
-    g_cms_1p45.SetLineColor(ROOT.kRed)
-    g_cms_1p45.SetLineWidth(2)
+    g_stat_cms_1p45.SetMarkerStyle(ROOT.kOpenDiamond)
+    g_stat_cms_1p45.SetMarkerSize(1.5)
+    g_stat_cms_1p45.SetMarkerColor(ROOT.kRed)
+    g_stat_cms_1p45.SetLineColor(ROOT.kRed)
+    g_stat_cms_1p45.SetLineWidth(2)
 
-    g_cms_2p1.SetMarkerStyle(ROOT.kFullDiamond)
-    g_cms_2p1.SetMarkerSize(1.5)
-    g_cms_2p1.SetMarkerColor(ROOT.kRed)
-    g_cms_2p1.SetLineColor(ROOT.kRed)
-    g_cms_2p1.SetLineWidth(2)
+    g_syst_cms_1p45.SetMarkerStyle(ROOT.kOpenDiamond)
+    g_syst_cms_1p45.SetMarkerSize(1.5)
+    g_syst_cms_1p45.SetMarkerColor(ROOT.kRed)
+    g_syst_cms_1p45.SetLineColor(ROOT.kRed)
+    g_syst_cms_1p45.SetLineWidth(2)
+    g_syst_cms_1p45.SetFillStyle(0)
+
+    g_stat_cms_2p1.SetMarkerStyle(ROOT.kFullDiamond)
+    g_stat_cms_2p1.SetMarkerSize(1.5)
+    g_stat_cms_2p1.SetMarkerColor(ROOT.kRed)
+    g_stat_cms_2p1.SetLineColor(ROOT.kRed)
+    g_stat_cms_2p1.SetLineWidth(2)
+
+    g_syst_cms_2p1.SetMarkerStyle(ROOT.kFullDiamond)
+    g_syst_cms_2p1.SetMarkerSize(1.5)
+    g_syst_cms_2p1.SetMarkerColor(ROOT.kRed)
+    g_syst_cms_2p1.SetLineColor(ROOT.kRed)
+    g_syst_cms_2p1.SetLineWidth(2)
+    g_syst_cms_2p1.SetFillStyle(0)
 
     # Draw
     c = ROOT.TCanvas('c', 'c', 700, 600)
@@ -88,8 +113,10 @@ if __name__ == '__main__':
     h_frame.GetYaxis().SetTitleSize(0.04)
     h_frame.GetXaxis().SetLabelSize(0.04)
     h_frame.GetYaxis().SetLabelSize(0.04)
-    g_cms_1p45.Draw('same pZ')
-    g_cms_2p1.Draw('same pZ')
+    g_stat_cms_1p45.Draw('same pZ')
+    g_stat_cms_2p1.Draw('same pZ')
+    g_syst_cms_1p45.Draw('same 5')
+    g_syst_cms_2p1.Draw('same 5')
     h_stat.Draw('same p')
     g_syst.Draw('same 5')
 
@@ -109,8 +136,8 @@ if __name__ == '__main__':
     leg_cms.SetTextSize(0.04)
     leg_cms.SetMargin(0.7)
     leg_cms.SetHeader('CMS, #sqrt{#it{s}} = 13 TeV')
-    leg_cms.AddEntry(g_cms_1p45, '|#it{y}| < 1.45', 'lp')
-    leg_cms.AddEntry(g_cms_2p1, '|#it{y}| < 2.1', 'lp')
+    leg_cms.AddEntry(g_stat_cms_1p45, '|#it{y}| < 1.45', 'lp')
+    leg_cms.AddEntry(g_stat_cms_2p1, '|#it{y}| < 2.1', 'lp')
     leg_cms.Draw()
 
     # Add the text
