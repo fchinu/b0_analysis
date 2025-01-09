@@ -37,15 +37,15 @@ if __name__ == '__main__':
     g_syst_cms = cms_file.Get('g_syst')
     for i in range(g_stat_cms.GetN()):
         if g_stat_cms.GetPointX(i) < 17:
-            g_stat_cms_1p45.SetPoint(i-1, g_stat_cms.GetPointX(i), g_stat_cms.GetPointY(i))
-            g_stat_cms_1p45.SetPointError(i-1, g_stat_cms.GetErrorXlow(i), g_stat_cms.GetErrorXhigh(i), g_stat_cms.GetErrorYlow(i), g_stat_cms.GetErrorYhigh(i))
-            g_syst_cms_1p45.SetPoint(i-1, g_syst_cms.GetPointX(i), g_syst_cms.GetPointY(i))
-            g_syst_cms_1p45.SetPointError(i-1, g_syst_cms.GetErrorXlow(i)/2, g_syst_cms.GetErrorXhigh(i)/2, g_syst_cms.GetErrorYlow(i), g_syst_cms.GetErrorYhigh(i))
+            g_stat_cms_1p45.SetPoint(i, g_stat_cms.GetPointX(i), g_stat_cms.GetPointY(i))
+            g_stat_cms_1p45.SetPointError(i, g_stat_cms.GetErrorXlow(i), g_stat_cms.GetErrorXhigh(i), g_stat_cms.GetErrorYlow(i), g_stat_cms.GetErrorYhigh(i))
+            g_syst_cms_1p45.SetPoint(i, g_syst_cms.GetPointX(i), g_syst_cms.GetPointY(i))
+            g_syst_cms_1p45.SetPointError(i, g_syst_cms.GetErrorXlow(i)/2, g_syst_cms.GetErrorXhigh(i)/2, g_syst_cms.GetErrorYlow(i), g_syst_cms.GetErrorYhigh(i))
         else:
-            g_stat_cms_2p1.SetPoint(i-1, g_stat_cms.GetPointX(i), g_stat_cms.GetPointY(i))
-            g_stat_cms_2p1.SetPointError(i-1, g_stat_cms.GetErrorXlow(i), g_stat_cms.GetErrorXhigh(i), g_stat_cms.GetErrorYlow(i), g_stat_cms.GetErrorYhigh(i))
-            g_syst_cms_2p1.SetPoint(i-1, g_syst_cms.GetPointX(i), g_syst_cms.GetPointY(i))
-            g_syst_cms_2p1.SetPointError(i-1, g_syst_cms.GetErrorXlow(i)/2, g_syst_cms.GetErrorXhigh(i)/2, g_syst_cms.GetErrorYlow(i), g_syst_cms.GetErrorYhigh(i))
+            g_stat_cms_2p1.SetPoint(i, g_stat_cms.GetPointX(i), g_stat_cms.GetPointY(i))
+            g_stat_cms_2p1.SetPointError(i, g_stat_cms.GetErrorXlow(i), g_stat_cms.GetErrorXhigh(i), g_stat_cms.GetErrorYlow(i), g_stat_cms.GetErrorYhigh(i))
+            g_syst_cms_2p1.SetPoint(i, g_syst_cms.GetPointX(i), g_syst_cms.GetPointY(i))
+            g_syst_cms_2p1.SetPointError(i, g_syst_cms.GetErrorXlow(i)/2, g_syst_cms.GetErrorXhigh(i)/2, g_syst_cms.GetErrorYlow(i), g_syst_cms.GetErrorYhigh(i))
     cms_file.Close()
 
     g_stat_cms_1p45.Scale(1./2.9) # divide by rapidity range
@@ -59,6 +59,7 @@ if __name__ == '__main__':
 
     g_syst_cms_1p45.Scale(1.e6) # convert to pb
     g_syst_cms_2p1.Scale(1.e6) # convert to pb
+    g_stat_cms_1p45.Print()
 
     # Set the style
     h_stat.SetMarkerStyle(ROOT.kFullCircle)
