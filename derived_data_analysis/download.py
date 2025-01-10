@@ -21,6 +21,7 @@ def download_from_directory(task_id, input_directory, is_slim):
         os.system(f"alien_find alien://{input_directory} "
                   f"AOD/*/AnalysisResults.root > outputs_{train_id}.txt")
 
+    lines = []
     check_unmerged = False
     with open(f"outputs_{train_id}.txt") as file:
         lines = [line.rstrip() for line in file]
@@ -31,8 +32,12 @@ def download_from_directory(task_id, input_directory, is_slim):
     if check_unmerged:
         os.system(f"alien_find alien://{input_directory} "
                   f"*/AnalysisResults.root > outputs_{train_id}.txt")
+
         with open(f"outputs_{train_id}.txt") as file:
-            lines = [line.rstrip() for line in file]
+            for line in file:
+                if "Stage" in line: # we do not want partially merged files
+                    continue
+                lines.append(line.rstrip())
 
     if not os.path.isdir(train_id):
         os.mkdir(train_id)
@@ -84,10 +89,10 @@ def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim)
     if nbunch > 1:
         for bunch in range(nbunch):
             os.system(f"o2-aod-merger --input files_to_merge_{bunch}.txt --output "
-                      f"AO2D{suffix}_{bunch}.root --max-size 1000000000 --skip-parent-files-list")
+                      f"AO2D{suffix}_{bunch}.root --max-size 100000000 --skip-parent-files-list")
     else:
         os.system(f"o2-aod-merger --input files_to_merge_1.txt --output "
-                  f"AO2D{suffix}.root --max-size 1000000000 --skip-parent-files-list")
+                  f"AO2D{suffix}.root --max-size 100000000 --skip-parent-files-list")
 
     os.system(f"hadd -f AnalysisResults{suffix}.root hy_*/AnalysisResults*.root")
 
