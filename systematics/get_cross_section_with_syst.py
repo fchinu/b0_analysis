@@ -7,6 +7,8 @@ def get_cross_sec_with_syst(config_file_name):
         config = yaml.safe_load(f)
     with ROOT.TFile.Open(config['inputs']['cross_section_file']) as f:
         h_cross_section = f.Get('h_cross_section')
+        h_lumi_before_bc = f.Get('h_lumi_before_bc')
+        h_lumi_after_bc = f.Get('h_lumi_after_bc')
 
     # Get systematics histograms (pt dependent)
     h_systs_no_br_no_lumi = {}
@@ -16,6 +18,15 @@ def get_cross_sec_with_syst(config_file_name):
             h_systs_rel_no_br_no_lumi[syst_name] = f.Get('assigned_syst')
             h_systs_no_br_no_lumi[syst_name] = f.Get('assigned_syst')
             h_systs_no_br_no_lumi[syst_name].Multiply(h_cross_section)
+    
+    # We don't separate tracking syst from the rest
+    h_tracking_syst = h_cross_section.Clone()
+    h_tracking_syst.Scale(config["tracking"])
+    h_tracking_syst_rel = h_cross_section.Clone()
+    h_systs_no_br_no_lumi["tracking"] = h_tracking_syst
+    for i in range(1, h_cross_section.GetNbinsX()+1):
+        h_tracking_syst_rel.SetBinContent(i, config["tracking"])
+    h_systs_rel_no_br_no_lumi["tracking"] = h_tracking_syst_rel
 
     # Get systematics histograms (pt independent)
     h_lumi_syst = h_cross_section.Clone()
@@ -125,6 +136,9 @@ def get_cross_sec_with_syst(config_file_name):
     
         h_lumi_syst_rel.Write('lumi_rel')
         h_br_syst_rel.Write('br_rel')
+
+        h_lumi_before_bc.Write('h_lumi_before_bc')
+        h_lumi_after_bc.Write('h_lumi_after_bc')
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Get cross section with systematics')

@@ -1,9 +1,11 @@
 inputs:
-  cross_section_file: cross_section/cross_section_full_23_24_with_bc_cuts_chebpol2.root
+  cross_section_file: cross_section/cross_section_full_23_24_with_bc_cuts_chebpol2_finer_pt_high_pt.root
   syst_files:
-    bdt: systematics/bdt/outputs/default/bdt_systematic.root
-    rawy: systematics/raw_yields/outputs/default/raw_yields_systematic.root
+    bdt: systematics/bdt/outputs/finer_pt_high_pt/bdt_systematic.root
+    rawy: systematics/raw_yields/outputs/finer_pt_high_pt/raw_yields_systematic.root
+    single_track: systematics/single_track_selections/default_finer_pt_high_pt/results.root
 
+tracking: 0.12
 lumi_unc: 0.1
 br:
   - value: 2.51e-3 # B0 -> D- pi+
@@ -11,4 +13,4 @@ br:
   - value: 9.38e-2 # D- -> K+ pi- pi-
     unc: 0.16e-2
 
-output_name: systematics/cross_section_default_w_syst.root
+output_name: systematics/cross_section_default_finer_pt_high_pt_w_syst.root
