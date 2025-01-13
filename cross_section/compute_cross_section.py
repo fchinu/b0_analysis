@@ -31,7 +31,7 @@ def main(config_file_name):
         analysis_results_files, config['lumi']['zorro_folder'],
         config['lumi']['triggers_of_interest'], config['lumi']['h_collisions_path']
     )
-    int_lumi = n_events/config['lumi']['tvx_cross_section']
+    int_lumi_before_bc = n_events/config['lumi']['tvx_cross_section']
 
     lumi_before_bc, lumi_after_bc = 0, 0
     for file in analysis_results_files:
@@ -40,7 +40,7 @@ def main(config_file_name):
         lumi_after_bc += infile.Get(f"{config['lumi']['folder_bc_cuts']}/hLumiTVXafterBCcuts").Integral()
         infile.Close()
     
-    int_lumi = int_lumi * lumi_after_bc / lumi_before_bc
+    int_lumi_after_bc = int_lumi_before_bc * lumi_after_bc / lumi_before_bc
 
     br_b_to_d = config['br']['b0_todminuspi']
     br_d_to_pikpi = config['br']['dplus_tokpipi']
@@ -60,13 +60,23 @@ def main(config_file_name):
     # Compute the cross section
     h_cross_section = h_raw_yield.Clone('h_cross_section')
     h_cross_section.Divide(h_eff)
-    h_cross_section.Scale(1/(2 * br_b_to_d * br_d_to_pikpi * int_lumi))
+    h_cross_section.Scale(1/(2 * br_b_to_d * br_d_to_pikpi * int_lumi_after_bc))
     for i in range(1, h_cross_section.GetNbinsX()+1):
         h_cross_section.SetBinContent(i, h_cross_section.GetBinContent(i) / h_cross_section.GetBinWidth(i))
         h_cross_section.SetBinError(i, h_cross_section.GetBinError(i) / h_cross_section.GetBinWidth(i))
 
+    h_lumi_before_bc = h_cross_section.Clone()
+    h_lumi_after_bc = h_cross_section.Clone()
+    for i in range(1, h_cross_section.GetNbinsX()+1):
+        h_lumi_before_bc.SetBinContent(i, int_lumi_before_bc)
+        h_lumi_before_bc.SetBinError(i, 0.1 * int_lumi_before_bc)
+        h_lumi_after_bc.SetBinContent(i, int_lumi_after_bc)
+        h_lumi_after_bc.SetBinError(i, 0.1 * int_lumi_after_bc)
+
     outfile = ROOT.TFile.Open(config['output_file'], 'recreate')
     h_cross_section.Write()
+    h_lumi_before_bc.Write('h_lumi_before_bc')
+    h_lumi_after_bc.Write('h_lumi_after_bc')
     outfile.Close()
 
 if __name__ == '__main__':
