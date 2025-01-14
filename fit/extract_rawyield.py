@@ -179,7 +179,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                                        name=f"{particle}_mc_ptint",
                                        label_signal_pdf=[rf"$\mathrm{{{particle_name}}}$ signal"])
         fitter_mc_ptint.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.10])
-        fitter_mc_ptint.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
+        fitter_mc_ptint.set_signal_initpar(0, "sigma2", 0.085, limits=[0.01, 0.25])
         fitter_mc_ptint.set_particle_mass(0, pdg_id=pdg_id)
         result = fitter_mc_ptint.mass_zfit()
         if result.converged:
@@ -280,7 +280,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                                     name=f"{particle}_mc_pt{pt_min:.0f}_{pt_max:.0f}",
                                     label_signal_pdf=[rf"$\mathrm{{{particle_name}}}$ signal"])
         fitter_mc_pt.set_signal_initpar(0, "sigma1", 0.03, limits=[0.01, 0.10])
-        fitter_mc_pt.set_signal_initpar(0, "sigma2", 0.08, limits=[0.01, 0.25])
+        fitter_mc_pt.set_signal_initpar(0, "sigma2", 0.085, limits=[0.01, 0.25])
         fitter_mc_pt.set_particle_mass(0, pdg_id=pdg_id)
         result = fitter_mc_pt.mass_zfit()
         if result.converged:

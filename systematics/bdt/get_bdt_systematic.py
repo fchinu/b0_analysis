@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt  # noqa; E402
 from matplotlib.patches import Rectangle  # noqa; E402
 import numpy as np  # noqa; E402
 import pandas as pd  # noqa; E402
+import zfit
 from flarefly.utils import Logger  # noqa; E402
 from flarefly.data_handler import DataHandler  # noqa; E402
 from flarefly.fitter import F2MassFitter  # noqa; E402
@@ -258,7 +259,11 @@ def load_data_mc_df(config):
     """
     df_data = pd.concat([pd.read_parquet(input_file) for input_file in config["inputs"]["data"]])
     df_mc = pd.concat([pd.read_parquet(input_file) for input_file in config["inputs"]["mc"]])
-    return df_data, df_mc
+    if config["inputs"]["mc_for_efficiency"] is not None:
+        df_mc_for_efficiency = pd.concat([pd.read_parquet(input_file) for input_file in config["inputs"]["mc_for_efficiency"]])
+    else:
+        df_mc_for_efficiency = df_mc
+    return df_data, df_mc, df_mc_for_efficiency
 
 
 def get_cuts(config, central_cutset):  # pylint: disable=too-many-locals
@@ -280,11 +285,15 @@ def get_cuts(config, central_cutset):  # pylint: disable=too-many-locals
 
     min_selections, max_selections = [], []
     for i_pt, (ml_min, ml_max) in enumerate(zip(ml_mins, ml_maxs)):
-        n_cuts = config["cut_variations"]["n_cuts"][i_pt]
+        n_cuts_pos = config["cut_variations"]["n_cuts_pos"][i_pt]
+        n_cuts_neg = config["cut_variations"]["n_cuts_neg"][i_pt]
         ml_min_var = config["cut_variations"]["mins"][i_pt]
         ml_max_var = config["cut_variations"]["maxs"][i_pt]
         if config["cut_variations"]["edge"] == "min":
-            min_selections.append(np.linspace(ml_min_var, ml_max_var, n_cuts).tolist())
+            min_selections.append(
+                np.linspace(ml_min_var, ml_mins[i_pt], n_cuts_neg).tolist() +
+                np.linspace(ml_mins[i_pt], ml_max_var, n_cuts_pos).tolist()[1:]
+            )
             max_selections.append([ml_max] * len(min_selections[-1]))
         elif config["cut_variations"]["edge"] == "max":
             max_selections.append(np.linspace(ml_min_var, ml_max_var, n_cuts).tolist())
@@ -333,6 +342,9 @@ def get_fit_config(config, i_pt):
         "n_bins": fit_config["plot_style"]["n_bins"][i_pt],
         "sigma": sigma,
         "mean": mean,
+        "correlated_bkgs": fit_config["fit_configs"]["correlated_bkgs"],
+        "signal_br": fit_config["fit_configs"]["signal_br"],
+        "corr_bkg_frac": None,
         "i_pt": i_pt
     }
 
@@ -355,13 +367,15 @@ def build_fitter(df_data, df_mc_prd_bkg, fit_config):
     # data
     data_hdl = DataHandler(
         df_data, var_name="fM",
-        limits=[fit_config["mass_limits"][0], fit_config["mass_limits"][1]]
+        limits=[fit_config["mass_limits"][0], fit_config["mass_limits"][1]],
+        nbins=round((fit_config["mass_limits"][1]-fit_config["mass_limits"][0])/0.01)
     )
 
     # mc partly reco decays
     data_hdl_bkg = DataHandler(
         df_mc_prd_bkg, var_name="fM",
-        limits=[fit_config["mass_limits"][0], fit_config["mass_limits"][1]]
+        limits=[fit_config["mass_limits"][0], fit_config["mass_limits"][1]],
+        nbins=round((fit_config["mass_limits"][1]-fit_config["mass_limits"][0])/0.01)
     )
 
     bkg_funcs = fit_config["bkg_funcs"]
@@ -394,10 +408,11 @@ def build_fitter(df_data, df_mc_prd_bkg, fit_config):
         fitter.set_signal_initpar(0, "sigma", 0.04, limits=[0.01, 0.08])
     fitter.set_signal_initpar(0, "frac", 0.05, limits=[0., 1.])
 
-    if fit_config["bkg_funcs"] == ["chebpol2"]:
-        fitter.set_background_initpar(1, "c0", 1.)
-        fitter.set_background_initpar(1, "c1", -0.3)
-        fitter.set_background_initpar(1, "c2", 0.02)
+    fitter.set_background_initpar(1, "c0", 1.)
+    fitter.set_background_initpar(1, "c1", -0.05, limits=[-2, 2.])
+    fitter.set_background_initpar(1, "c2", 0.008, limits=[0.000, 0.5])
+
+    fitter.fix_bkg_frac_to_signal_pdf(0, 0, fit_config["corr_bkg_frac"])
 
     return fitter
 
@@ -456,13 +471,13 @@ def get_fit_results(fitter, result):
     return result
 
 
-def get_efficiency(df_mc, df_mc_sig, config, fit_config):
+def get_efficiency(df_mc, df_mc_sel, config, fit_config):
     """
     Calculate the efficiency and its uncertainty.
 
     Parameters:
     df_mc (pandas.DataFrame): DataFrame containing the MC data.
-    df_mc_sig (pandas.DataFrame): DataFrame containing the selected MC data.
+    df_mc_sel (pandas.DataFrame): DataFrame containing the selected MC data.
     config (dict): Cut variation onfiguration dictionary.
     fit_config (dict): Configuration dictionary containing the fit index.
 
@@ -473,7 +488,8 @@ def get_efficiency(df_mc, df_mc_sig, config, fit_config):
     """
     with uproot.open(config["efficiency_file"], encoding="utf8") as f:
         trigger_eff = f["h_eff_trigger"].values()[fit_config["i_pt"]]
-    eff = len(df_mc_sig) / len(df_mc) * trigger_eff
+        print(trigger_eff)
+    eff = len(df_mc_sel) / len(df_mc) * trigger_eff
     # assume trigger efficiency uncertainty is negligible
     eff_unc = np.sqrt(eff * (1 - eff) / len(df_mc))
     return eff, eff_unc
@@ -502,7 +518,7 @@ def get_corr_rawy(results):
     return corr_rawy, corr_rawy_unc
 
 
-def run_variation(df_data, df_mc, selection, config, fit_config):  # pylint: disable=too-many-locals
+def run_variation(df_data, df_mc, df_mc_eff, selection, config, fit_config):  # pylint: disable=too-many-locals
     """
     Run the variation for the given selection.
 
@@ -517,10 +533,29 @@ def run_variation(df_data, df_mc, selection, config, fit_config):  # pylint: dis
     df_mc_sig = df_mc.query("abs(fFlagMcMatchRec) == 1")
     df_mc_sel = df_mc.query(selection)
     df_mc_sel_sig = df_mc_sel.query("abs(fFlagMcMatchRec) == 1")
-    df_mc_prd_bkg = df_mc_sel.query("fFlagMcMatchRec == 4")
+    df_mc_eff_sig = df_mc_eff.query("abs(fFlagMcMatchRec) == 1")
+    df_mc_eff_sel_sig = df_mc_eff_sig.query(selection)
+    df_mc_prd_bkg = df_mc_sel.query("fFlagMcMatchRec == 8")
+
+    dfs_prd_bkg_orig = []
+    fracs = []
+    den_norm = len(df_mc_sel_sig) * fit_config["signal_br"]["pdg"] / fit_config["signal_br"]["sim"]
+    for bkg in fit_config["correlated_bkgs"]:
+        df_prd_bkg = df_mc_prd_bkg.query(f"fPdgCodeBeautyMother == {bkg['beauty_id']} and "
+                                         f"fPdgCodeCharmMother == {bkg['charm_id']}")
+        dfs_prd_bkg_orig.append(df_prd_bkg)
+        fracs.append(len(df_prd_bkg) * bkg["br_pdg"] / bkg["br_sim"] / den_norm)
+    sum_fracs = sum(fracs)
+    fracs_norm = [frac / sum_fracs for frac in fracs]
+
+    dfs_prd_bkg_sampled = []
+    for frac, df_bkg in zip(fracs_norm, dfs_prd_bkg_orig):
+        dfs_prd_bkg_sampled.append(df_bkg.sample(frac=frac, random_state=42))
+    df_prd_bkg_sampled = pd.concat(dfs_prd_bkg_sampled)
+    fit_config.update({"corr_bkg_frac": sum(fracs)})
 
     # get the raw yields
-    fitter = build_fitter(df_data_sel, df_mc_prd_bkg, fit_config)
+    fitter = build_fitter(df_data_sel, df_prd_bkg_sampled, fit_config)
 
     results = fitter.mass_zfit()
     if results.converged and config["output"]["save_all_fits"]:
@@ -533,6 +568,7 @@ def run_variation(df_data, df_mc, selection, config, fit_config):  # pylint: dis
             os.makedirs(out_dir)
         fig, _ = fitter.plot_mass_fit(
             style="ATLAS",
+            show_extra_info=True,
             figsize=(8, 8),
             axis_title=r"$M(\mathrm{D^-\pi^+})$ (GeV/$c^2$)"
         )
@@ -541,7 +577,7 @@ def run_variation(df_data, df_mc, selection, config, fit_config):  # pylint: dis
         )
 
     variation_results = get_fit_results(fitter, results)
-    eff, eff_unc = get_efficiency(df_mc_sig, df_mc_sel_sig, config, fit_config)
+    eff, eff_unc = get_efficiency(df_mc_eff_sig, df_mc_eff_sel_sig, config, fit_config)
     variation_results.update({"eff": eff, "eff_unc": eff_unc})
     corr_rawy, corr_rawy_unc = get_corr_rawy(variation_results)
     variation_results.update({"corr_rawy": corr_rawy, "corr_rawy_unc": corr_rawy_unc})
@@ -569,16 +605,20 @@ def get_rms_shift_sum_quadrature(df, cfg, i_pt, rel=False):
     with uproot.open(cfg["fit"]["fit_file"]) as f:
         h_rawy = f["h_rawyields"]
     central_rawy = h_rawy.values()[i_pt]
+    with uproot.open(cfg["efficiency_file"]) as f:
+        h_eff = f["h_eff"]
+    central_eff = h_eff.values()[i_pt]
+    central_corry = central_rawy / central_eff
 
     if rel:
         return np.sqrt(
-            np.std(df["rawy"])**2 +
-            (np.mean(df["rawy"]) - central_rawy)**2
-        ) / central_rawy
+            np.std(df["corr_rawy"])**2 +
+            (np.mean(df["corr_rawy"]) - central_corry)**2
+        ) / central_corry
 
     return np.sqrt(
-        np.std(df["rawy"])**2 +
-        (np.mean(df["rawy"]) - central_rawy)**2
+        np.std(df["corr_rawy"])**2 +
+        (np.mean(df["corr_rawy"]) - central_corry)**2
     )
 
 
@@ -591,7 +631,7 @@ def dump_results_to_root(dfs, cfg, cut_set):
         cfg (dict): Configuration dictionary.
         cut_set (dict): Dictionary containing the cut sets.
 
-    Returns:
+    Returns:corr_rawy
         None
     """
     pt_mins = cut_set["pt"]["mins"]
@@ -626,7 +666,7 @@ def dump_results_to_root(dfs, cfg, cut_set):
         f["assigned_syst"] = (np.array(assigned_syst), pt_edges)
 
 
-def cut_variation(config_file_name):  # pylint: disable=too-many-locals
+def cut_variation(config_file_name, draw_only=False):  # pylint: disable=too-many-locals
     """
     Perform systematic variations on BDT cuts and save the results.
 
@@ -646,45 +686,52 @@ def cut_variation(config_file_name):  # pylint: disable=too-many-locals
     print(min_selections)
     print(max_selections)
 
-    df_data, df_mc = load_data_mc_df(config)
+    df_data, df_mc, df_mc_eff = load_data_mc_df(config)
 
     idx_assigned_syst = 0
     out_dfs = []
     for i_pt, (pt_min, pt_max) in enumerate(zip(pt_mins, pt_maxs)):
-        if config["cut_variations"]["pt_bins"] is not None:
-            if i_pt not in config["cut_variations"]["pt_bins"]:
-                out_dfs.append(None)
-                continue
-        fit_config = get_fit_config(config, i_pt)
-        df_data_pt = df_data.query(f"{pt_min} < fPt < {pt_max}")
-        df_mc_pt = df_mc.query(f"{pt_min} < fPt < {pt_max}")
-        results = []
-        with ProcessPoolExecutor(max_workers=config["max_workers"]) as executor:
-            for i_var, (min_selection, max_selection) in enumerate(zip(min_selections[i_pt], max_selections[i_pt])):  # pylint: disable=line-too-long # noqa: E501
-                fit_config.update({
-                    "i_var": i_var,
-                    "min_selection": min_selection,
-                    "max_selection": max_selection
-                })
-                selection = f"{min_selection} < ML_output < {max_selection}"
-                results.append(executor.submit(
-                    run_variation, df_data_pt, df_mc_pt,
-                    selection, config, fit_config.copy()
-                ))
+        if not draw_only:
+            if config["cut_variations"]["pt_bins"] is not None:
+                if i_pt not in config["cut_variations"]["pt_bins"]:
+                    out_dfs.append(None)
+                    continue
+            fit_config = get_fit_config(config, i_pt)
+            df_data_pt = df_data.query(f"{pt_min} < fPt < {pt_max}")
+            df_mc_pt = df_mc.query(f"{pt_min} < fPt < {pt_max}")
+            df_mc_eff_pt = df_mc_eff.query(f"{pt_min} < fPt < {pt_max}")
+            results = []
+            with ProcessPoolExecutor(max_workers=config["max_workers"]) as executor:
+                for i_var, (min_selection, max_selection) in enumerate(zip(min_selections[i_pt], max_selections[i_pt])):  # pylint: disable=line-too-long # noqa: E501
+                    fit_config.update({
+                        "i_var": i_var,
+                        "min_selection": min_selection,
+                        "max_selection": max_selection
+                    })
+                    selection = f"{min_selection} < ML_output < {max_selection}"
+                    results.append(executor.submit(
+                        run_variation, df_data_pt, df_mc_pt, df_mc_eff_pt,
+                        selection, config, fit_config.copy()
+                    ))
 
-        out_df = []
-        for result in results:
-            result = result.result()
-            # Wrap into list to avoid ValueError: If using all scalar values, you must pass an index
-            out_df.append(pd.DataFrame([result]))
+            out_df = []
+            for result in results:
+                result = result.result()
+                # Wrap into list to avoid ValueError: If using all scalar values, you must pass an index
+                out_df.append(pd.DataFrame([result]))
 
-        out_df = pd.concat(out_df)
-        if not os.path.exists(os.path.expanduser(f"{config['output']['output_dir']}")):
-            os.makedirs(os.path.expanduser(f"{config['output']['output_dir']}"))
-        out_df.to_parquet(os.path.join(
-            os.path.expanduser(f"{config['output']['output_dir']}"),
-            f"BDT_{pt_min * 10:.0f}_{pt_max * 10:.0f}.parquet")
-        )
+            out_df = pd.concat(out_df)
+            if not os.path.exists(os.path.expanduser(f"{config['output']['output_dir']}")):
+                os.makedirs(os.path.expanduser(f"{config['output']['output_dir']}"))
+            out_df.to_parquet(os.path.join(
+                os.path.expanduser(f"{config['output']['output_dir']}"),
+                f"BDT_{pt_min * 10:.0f}_{pt_max * 10:.0f}.parquet")
+            )
+        else:
+            out_df = pd.read_parquet(os.path.join(
+                os.path.expanduser(f"{config['output']['output_dir']}"),
+                f"BDT_{pt_min * 10:.0f}_{pt_max * 10:.0f}.parquet")
+            )
         out_dfs.append(out_df)
 
         draw_cut_variation(out_df, config, pt_min, pt_max, idx_assigned_syst)
@@ -695,6 +742,9 @@ def cut_variation(config_file_name):  # pylint: disable=too-many-locals
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Get BDT systematic')
     parser.add_argument('config', type=str, help='Path to the configuration file')
+    parser.add_argument('--draw-only', action='store_true', help='Only draw the results')
     args = parser.parse_args()
 
-    cut_variation(args.config)
+    zfit.run.set_cpus_explicit(intra=20, inter=20)
+
+    cut_variation(args.config, args.draw_only)
