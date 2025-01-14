@@ -1,31 +1,51 @@
-efficiency_file: efficiency/efficiency.root             # file with central values
+efficiency_file: efficiency/finer_pt_high_pt/efficiency_i3_i4_from_bdt_test.root            # file with central values
 central_cutset: config/cutset.yaml                      # file with central cuts (used for pt bins)
     
 inputs:
-    data: [ ML/application/LHC23_24_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
-            ML/application/LHC23_24_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
+    data: [
+            ML/application/default_finer_pt_high_pt/LHC24_pass1_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24_pass1_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24_pass1_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC23_pass4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC23_pass4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC23_pass4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24ao_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24ao_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24ao_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip
+            ]
+    mc: [
+            ML/application/default_finer_pt_high_pt/LHC24i3_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24i3_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24i3_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24i4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24i4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
+            ML/application/default_finer_pt_high_pt/LHC24i4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
+        ]
+    mc_for_efficiency: [
+        'ML/training/default_finer_pt_high_pt/pt2_6/B0ToDPi_ModelApplied_pT_2_6_signal.parquet.gzip',
+        'ML/training/default_finer_pt_high_pt/pt6_14/B0ToDPi_ModelApplied_pT_6_14_signal.parquet.gzip',
+        'ML/training/default_finer_pt_high_pt/pt14_100/B0ToDPi_ModelApplied_pT_14_100_signal.parquet.gzip',
+    ]
 
-    mc:   [ ML/application/LHC23c1_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
-            ML/application/LHC23c1_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
-
-max_workers: 2                                          # number of parallel workers
+max_workers: 3                                          # number of parallel workers
 
 output:
-    output_dir: systematics/bdt/outputs                 # output directory
+    output_dir: systematics/bdt/outputs/finer_pt_high_pt        # output directory
     save_all_fits: true                                 # whether to save all fits figures
     output_dir_fits: fits                               # append to output_dir
 
 cut_variations:
     pt_bins: null                                       # list of pt bins, set null if you want to keep them all
-    mins: [0.59,   0.59,  0.59,  0.59,  0.59]           # lower cut limit
-    maxs: [0.99, 0.99, 0.99, 0.99, 0.99]                # lower cut limit
-    n_cuts: [5, 5, 5, 5, 5]                             # number of cuts (edges are included)
+    mins: [0.75,   0.75,  0.75,  0.75,  0.75,  0.75]           # lower cut limit
+    maxs: [0.998, 0.998, 0.993, 0.993, 0.993, 0.995]                # lower cut limit
+    n_cuts_pos: [25, 25, 25, 25, 25, 25, 25]                             # number of cuts (edges are included)
+    n_cuts_neg: [25, 25, 25, 25, 25, 25, 25]                             # number of cuts (edges are included)
     edge: "min"                                         # edge to vary (min or max)
 
 fit:
     fit_config: fit/config_fit.yml                      # file with central values
     fix_sigma: true                                     # fix sigma to the central values
     fix_mean: false                                     # fix mean to the central values
-    fit_file: fit/outputs/B0_mass.root                  # file with central values
+    fit_file: fit/outputs/default_chebpol2_finer_pt_high_pt/B0_mass23_24_full_dataset.root                  # file with central values
 
-assigned_syst: [0.1, 0.1, 0.1, 0.1, 0.1]                # assigned systematic uncertainties
+assigned_syst: [0.09, 0.04, 0.04, 0.04, 0.04, 0.04]                # assigned systematic uncertainties
