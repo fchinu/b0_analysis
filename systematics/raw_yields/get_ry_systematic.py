@@ -39,17 +39,24 @@ def draw_multitrial(df_multitrial, cfg, pt_min, pt_max, idx_assigned_syst, h_raw
     - None
     """
     multitrial_cfg = cfg["multitrial"]
-    n_trials = len(df_multitrial)
-    n_bincounts = len(multitrial_cfg['bincounting_nsigma'])
-    x_axis_range = n_trials * (n_bincounts + 1) + 1
-
-    fig, axs = plt.subplots(2, 2, figsize=(20, 15))
 
     i_pt = np.digitize((pt_min + pt_max) / 2, h_rawy.axis().edges()) - 1
     central_rawy = h_rawy.values()[i_pt]
     central_rawy_unc = h_rawy.errors()[i_pt]
     central_sigma = h_sigma.values()[i_pt]
     central_sigma_unc = h_sigma.errors()[i_pt]
+
+    # Apply quality selections
+    df_multitrial = df_multitrial.query(
+        f'chi2_ndf < {multitrial_cfg["quality_selections"]["chi2"]} and \
+            abs(sigma - {central_sigma})/{central_sigma_unc} < {multitrial_cfg["quality_selections"]["nsigma_width"]}'
+    )
+
+    n_trials = len(df_multitrial)
+    n_bincounts = len(multitrial_cfg['bincounting_nsigma'])
+    x_axis_range = n_trials * (n_bincounts + 1) + 1
+
+    fig, axs = plt.subplots(2, 2, figsize=(20, 15))
 
     # Plot the results
     axs[0, 0].errorbar(
@@ -440,6 +447,7 @@ def build_fitter(
     fitter.set_background_initpar(icombbkg, "lam", -1.2, limits=[-10., 10.])
     fitter.set_background_initpar(icombbkg, "c1", -0.05, limits=[-2., 2.])
     fitter.set_background_initpar(icombbkg, "c2", 0.008, limits=[0.000, 0.2])
+    fitter.set_background_initpar(icombbkg, "c3", 0.008, limits=[-0.1, 0.1])
 
     return fitter
 
@@ -537,7 +545,7 @@ def get_rms_shift_sum_quadrature(df, h_rawy, i_pt, rel=False):
     )
 
 
-def dump_results_to_root(dfs, cfg, h_rawy, cut_set):
+def dump_results_to_root(dfs, cfg, h_rawy, h_sigma, cut_set):
     """
     Dump the results to a ROOT file.
 
@@ -571,6 +579,14 @@ def dump_results_to_root(dfs, cfg, h_rawy, cut_set):
             rms_shifts.append(0)
             assigned_syst.append(0)
             continue
+
+        central_sigma = h_sigma.values()[i_pt]
+        central_sigma_unc = h_sigma.errors()[i_pt]
+        # Apply quality selections
+        dfs[i_pt] = dfs[i_pt].query(
+            f'chi2_ndf < {cfg["multitrial"]["quality_selections"]["chi2"]} and \
+                abs(sigma - {central_sigma})/{central_sigma_unc} < {cfg["multitrial"]["quality_selections"]["nsigma_width"]}'
+        )
         rms_shifts.append(get_rms_shift_sum_quadrature(dfs[i_pt], h_rawy, i_pt, rel=True))
         assigned_syst.append(cfg["assigned_syst"][idx_assigned_syst])
         idx_assigned_syst += 1
@@ -699,7 +715,7 @@ def multi_trial(config_file_name: str, draw_only: bool = False):
         draw_multitrial(df_trials, cfg, pt_min, pt_max, idx_assigned_syst, h_rawy, h_sigma)
         idx_assigned_syst += 1
 
-    dump_results_to_root(dfs, cfg, h_rawy, cut_set)
+    dump_results_to_root(dfs, cfg, h_rawy, h_sigma, cut_set)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Multitrial B mesons')

@@ -74,5 +74,8 @@ multitrial:
     bkg_templ_opt: [1]                                  # bkg template option: # 0 -> all separated, 1 -> weighted average (faster)
     fix_correlated_bkg_to_signal: [true, false]         # fix relative normalisation of correlated backgrounds to signal
     bincounting_nsigma: []                              # nsigmas for bin counting raw yield extraction
+    quality_selections:
+      chi2: 2.
+      nsigma_width: 1.
 
 assigned_syst: [0.1,0.1]                                   # assigned systematic uncertainties
