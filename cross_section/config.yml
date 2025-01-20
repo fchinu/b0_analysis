@@ -12,6 +12,8 @@ lumi:
   triggers_of_interest: ['fHfBeauty4P']
   h_collisions_path: 'hf-candidate-creator-3prong/hCollisions'
   tvx_cross_section: 59400000000 # pb
+  lumi_before_bc_cuts: 3035880803644.0  # 13260200827/0.005 + 383840638244    # Can be null for extracting it from analysis_results_files
+  lumi_after_bc_cuts: 2382365588911.0   # 10354007744/0.005 + 311564040111    # Can be null for extracting it from analysis_results_files
 
 br:
   b0_todminuspi: 0.00251
