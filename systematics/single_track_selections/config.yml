@@ -45,6 +45,8 @@ configs:
   efficiency: efficiency/config_eff_finer_pt_high_pt.yaml
   cross_section: cross_section/config_chebpol2_finer_pt_high_pt.yml
 
+  fix_sigma: false # wheter to fix the sigma of the signal peak in the fit
+
 max_workers: 2
 
 assigned_syst: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]

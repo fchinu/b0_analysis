@@ -126,6 +126,22 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
         else:
             selection_string += f" or ({pt_min} < fPt < {pt_max} and {bdt_cut_min} < ML_output < {bdt_cut_max})"
 
+    if cfg["fit_configs"]["reference_file_for_fix_sigma_mean"] is not None:
+        with uproot.open(cfg["fit_configs"]["reference_file_for_fix_sigma_mean"]) as f:
+            if not np.allclose(f["h_means"].axis().edges(), pt_lims):
+                raise ValueError("Reference file for fixing mean and sigma has different pt bins.")
+            ref_means = f["h_means"].values()
+            ref_sigmas = f["h_sigmas"].values()
+    elif np.array(cfg["fit_configs"]["fix_mean"]).any() or np.array(cfg["fit_configs"]["fix_mean"]).any():
+        raise ValueError("Reference file for fixing mean and sigma is not provided.")
+
+    fix_means = cfg["fit_configs"]["fix_mean"]
+    fix_sigmas = cfg["fit_configs"]["fix_sigma"]
+    if not isinstance(fix_means, list):
+        fix_means = [fix_means] * len(pt_mins)
+    if not isinstance(fix_sigmas, list):
+        fix_sigmas = [fix_sigmas] * len(pt_mins)
+
     # load data
     df = pd.DataFrame()
     for file in cfg["inputs"]["data"]:
@@ -373,8 +389,14 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                     data_hdl_prd_bkg.get_norm() * bkg["br_pdg"] / bkg["br_sim"] / denom
                 )
 
-        fitter_pt.set_signal_initpar(0, "sigma", sigmas_mc[ipt], limits=[0.01, 0.1])
-        fitter_pt.set_particle_mass(0, pdg_id=pdg_id, limits=[5., 5.56])
+        if not fix_means[ipt]:
+            fitter_pt.set_particle_mass(0, pdg_id=pdg_id, limits=[5., 5.56])
+        else:
+            fitter_pt.set_particle_mass(0, ref_means[ipt], fix=True)
+        if not fix_sigmas[ipt]:
+            fitter_pt.set_signal_initpar(0, "sigma", sigmas_mc[ipt], limits=[0.01, 0.1])
+        else:
+            fitter_pt.set_signal_initpar(0, "sigma", ref_sigmas[ipt], fix=True)
         fitter_pt.set_signal_initpar(0, "frac", 0.1, limits=[0., 1.])
         if not cfg["fit_configs"]["fix_correlated_bkg_to_signal"][ipt]:
             fitter_pt.set_background_initpar(0, "frac", 0.05, limits=[0., 1.])

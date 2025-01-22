@@ -86,6 +86,17 @@ def create_fit_configs(config, query_dicts, fit_cfg):
             query_dict['selection_name'],
             'mc.parquet'
         )]
+        if config['configs']['fix_sigma']:
+            config_mod['fit_configs']['reference_file_for_fix_sigma_mean'] = os.path.join(
+                fit_cfg['outputs']['directory'],
+                config['particle'] + f"_mass{fit_cfg['outputs']['suffix']}.root"
+            )
+            config_mod['fit_configs']['fix_sigma'] = True
+        else:
+            config_mod['fit_configs']['reference_file_for_fix_sigma_mean'] = None
+            config_mod['fit_configs']['fix_sigma'] = False
+
+        config_mod['fit_configs']['fix_mean'] = False
         config_mod['outputs']['directory'] = os.path.join(
             config['output_dir'],
             'fits',
@@ -222,7 +233,7 @@ def draw_results(config, query_dicts):
         
     pt_centres = (pt_bins[:-1] + pt_bins[1:])/2
     pt_widths = (pt_bins[1:] - pt_bins[:-1])/2
-    ax_titles = ['Raw yields', 'Efficiency', 'Cross section', 'Counts']
+    ax_titles = ['Raw yields', 'Efficiency', r'$\frac{\mathrm{d}^2\sigma}{\mathrm{d}y\mathrm{d}p_\mathrm{T}} (\mathrm{pb}\ c/\mathrm{GeV})$', r'$\frac{\mathrm{d}^2\sigma}{\mathrm{d}y\mathrm{d}p_\mathrm{T}} (\mathrm{pb}\ c/\mathrm{GeV})$']
     for i_trial, (rawy, eff, cross_sec, rawy_unc, eff_unc, cross_sec_unc, query_dict) in enumerate(zip(rawyields, efficiencies, cross_sections, rawyields_unc, efficiencies_unc, cross_sections_unc, query_dicts)):
         axs[0, 0].errorbar(
             pt_centres, rawy, yerr=rawy_unc, xerr=pt_widths,
@@ -248,7 +259,7 @@ def draw_results(config, query_dicts):
         )
     axs[1, 0].set_yscale('log')
     axs_ratio[0].set_yscale('log')
-    axs_ratio[1].set_ylim(0.7, 1.3)
+    axs_ratio[1].set_ylim(0.5, 1.5)
     axs_ratio[1].axhline(1, color='black', linestyle='--')
 
     rms_shifts = []

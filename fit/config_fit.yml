@@ -1,39 +1,36 @@
 particle: "B0"
 
 inputs:
-  data: [../ML/applications/unanchored/LHC23_pass4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC23_pass4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC23_pass4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC24_pass1_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC24_pass1_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC24_pass1_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC24ao_pass1_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC24ao_pass1_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-         ../ML/applications/unanchored/LHC24ao_pass1_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip]
-  mc: [../ML/applications/unanchored/LHC24i3_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-       ../ML/applications/unanchored/LHC24i3_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-       ../ML/applications/unanchored/LHC24i3_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip,
-       ../ML/applications/unanchored/LHC24i4_B0ToDPi_pT_2_6_ModelApplied.parquet.gzip,
-       ../ML/applications/unanchored/LHC24i4_B0ToDPi_pT_6_14_ModelApplied.parquet.gzip,
-       ../ML/applications/unanchored/LHC24i4_B0ToDPi_pT_14_100_ModelApplied.parquet.gzip]
+  data: [ML/application/default/LHC24_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+         ML/application/default/LHC24_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+         ML/application/default/LHC23_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+         ML/application/default/LHC23_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+         ML/application/default/LHC24ao_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+         ML/application/default/LHC24ao_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip]
+  mc: [ML/application/default/LHC24i3_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+       ML/application/default/LHC24i4_B0ToDPi_pT_0_6_ModelApplied.parquet.gzip,
+       ML/application/default/LHC24i3_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+       ML/application/default/LHC24i4_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
+       ]
 
-cutset_file_name: '../config/cutset.yaml'
+cutset_file_name: 'config/cutset.yaml'
 
 fit_configs:
+  reference_file_for_fix_sigma_mean: null
   pt_int:
     activate: true
     signal_funcs: ["gaussian"]
     bkg_funcs: ["chebpol2"]
     mass_limits: [4.90, 5.66]
     use_bkg_templ: true
-    bkg_templ_opt: 0 # 0 -> all separated, 1 -> weighted average
+    bkg_templ_opt: 1 # 0 -> all separated, 1 -> weighted average
     fix_correlated_bkg_to_signal: true
   # below one per pT bin
   signal_funcs: [["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"], ["gaussian"]]
   bkg_funcs: [["chebpol2"], ["chebpol2"], ["chebpol2"], ["chebpol2"], ["chebpol2"], ["chebpol2"], ["chebpol2"]]
   mass_limits: [[4.90, 5.66], [4.90, 5.66], [4.90, 5.66], [4.90, 5.66], [4.90, 5.66], [4.90, 5.66], [4.90, 5.66]]
   use_bkg_templ: [true, true, true, true, true, true, true]
-  bkg_templ_opt: [0, 0, 0, 0, 0, 0, 0] # 0 -> all separated, 1 -> weighted average
+  bkg_templ_opt: [1, 1, 1, 1, 1, 1, 1] # 0 -> all separated, 1 -> weighted average
   correlated_bkgs:
     - name: '$\mathrm{B^0 \rightarrow D^{*-}\pi^+ \rightarrow D^-\pi^+\{\pi^0, \gamma\}}$'
       beauty_id: 511
@@ -69,6 +66,8 @@ fit_configs:
     pdg: 0.000235438 # 2.51e-3 * 9.38e-2
     sim: 0.17052154195011338 # 0.4 * 0.42630385487528344
   fix_correlated_bkg_to_signal: [true, true, true, true, true, true, true]
+  fix_mean: false # bool or list of bool
+  fix_sigma: true # bool or list of bool
 
 plot_style:
   pt_int:
@@ -76,6 +75,6 @@ plot_style:
   n_bins: [76, 76, 76, 76, 76, 76, 76]
 
 outputs:
-  directory: "unanchored"
-  suffix: "_unanchor_chebpol2"
+  directory: "fit/outputs/default_chebpol2"
+  suffix: "23_24_full_dataset"
 
