@@ -12,6 +12,8 @@ import uproot  # noqa; E402
 import yaml  # noqa; E402
 import matplotlib.pyplot as plt  # noqa; E402
 from matplotlib.patches import Rectangle  # noqa; E402
+from PyPDF2 import PdfMerger
+import re
 import numpy as np  # noqa; E402
 import pandas as pd  # noqa; E402
 import zfit
@@ -488,7 +490,6 @@ def get_efficiency(df_mc, df_mc_sel, config, fit_config):
     """
     with uproot.open(config["efficiency_file"], encoding="utf8") as f:
         trigger_eff = f["h_eff_trigger"].values()[fit_config["i_pt"]]
-        print(trigger_eff)
     eff = len(df_mc_sel) / len(df_mc) * trigger_eff
     # assume trigger efficiency uncertainty is negligible
     eff_unc = np.sqrt(eff * (1 - eff) / len(df_mc))
@@ -666,6 +667,50 @@ def dump_results_to_root(dfs, cfg, cut_set):
         f["assigned_syst"] = (np.array(assigned_syst), pt_edges)
 
 
+def merge_and_clean_pdfs(config, pt_min, pt_max, i_pt):
+    """
+    Merge all PDFs for a given pt bin into a single file and delete individual files.
+
+    Args:
+        config (dict): Configuration dictionary.
+        pt_min (float): Minimum pt value for the bin.
+        pt_max (float): Maximum pt value for the bin.
+        i_pt (int): Index of the pt bin.
+    """
+    pt_suffix = f"{pt_min * 10:.0f}_{pt_max * 10:.0f}"
+    pdf_dir = os.path.join(
+            os.path.expanduser(f"{config['output']['output_dir']}"),
+            config["output"]["output_dir_fits"]
+        )
+    merged_pdf_path = os.path.join(pdf_dir, f"mass_fits_{pt_suffix}_merged.pdf")
+    
+    pdf_merger = PdfMerger()
+
+    def extract_sort_key(filename):
+        """
+        Extract the numerical parts from the filename as a tuple for sorting.
+
+        Args:
+            filename (str): The filename to process.
+
+        Returns:
+            tuple: A tuple of numbers extracted from the filename.
+        """
+        match = re.findall(r'(\d+)', filename)
+        return tuple(map(int, match)) if match else (0,)
+    
+    pdf_files = sorted([os.path.join(pdf_dir, f) for f in os.listdir(pdf_dir) if f.startswith(f"mass_fit__{i_pt}")], key=extract_sort_key)
+
+    for pdf in pdf_files:
+       pdf_merger.append(pdf)
+
+    pdf_merger.write(merged_pdf_path)
+    pdf_merger.close()
+
+    # Delete individual files
+    for pdf in pdf_files:
+       os.remove(pdf)
+
 def cut_variation(config_file_name, draw_only=False):  # pylint: disable=too-many-locals
     """
     Perform systematic variations on BDT cuts and save the results.
@@ -714,6 +759,7 @@ def cut_variation(config_file_name, draw_only=False):  # pylint: disable=too-man
                         selection, config, fit_config.copy()
                     ))
 
+            merge_and_clean_pdfs(config, pt_min, pt_max, i_pt)
             out_df = []
             for result in results:
                 result = result.result()
