@@ -17,6 +17,7 @@ cutset_file_name: 'config/cutset.yaml'
 
 fit_configs:
   reference_file_for_fix_sigma_mean: null
+  shift_bkg_templ: -0.02        # numerical value or null
   pt_int:
     activate: true
     signal_funcs: ["gaussian"]
