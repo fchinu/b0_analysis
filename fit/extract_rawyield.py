@@ -162,6 +162,8 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
         df_prd_bkg = df_mc.query(f"fFlagMcMatchRec == {flag_mc_match_rec} and "
                                  f"fPdgCodeBeautyMother == {bkg['beauty_id']} and "
                                  f"fPdgCodeCharmMother == {bkg['charm_id']}")
+        if cfg["fit_configs"]["shift_bkg_templ"]:
+            df_prd_bkg["fM"] = df_prd_bkg["fM"] + cfg["fit_configs"]["shift_bkg_templ"]
         dfs_prd_bkg_orig.append(df_prd_bkg)
         fracs_ptint.append(len(df_prd_bkg) * bkg["br_pdg"] / bkg["br_sim"] / den_norm)
     sum_fracs = sum(fracs_ptint)
