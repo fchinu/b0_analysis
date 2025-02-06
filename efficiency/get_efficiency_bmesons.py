@@ -66,13 +66,13 @@ def draw_efficiency_figure(particle, h_eff, h_eff_trigger, h_acc, out_file_name_
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
     leg.AddEntry(h_acc, "Acceptance", "pl")
-    leg.AddEntry(h_eff_trigger, "Acc. #times #varepsilon_{trigger}", "pl")
-    leg.AddEntry(h_eff, "Acc. #times #varepsilon", "pl")
+    leg.AddEntry(h_eff_trigger, "Acc.#times#varepsilon_{trigger presel.}", "pl")
+    leg.AddEntry(h_eff, "Acc.#times#varepsilon", "pl")
 
     c_eff = ROOT.TCanvas('c_eff', '', 800, 800)
     c_eff.SetLogy()
     h_frame = c_eff.DrawFrame(h_eff.GetBinLowEdge(1), 1.e-4, h_eff.GetBinLowEdge(h_eff.GetNbinsX()+1), 10.,
-                ';#it{p}_{T} (GeV/#it{c});Acceptance #times Efficiency;')
+                ';#it{p}_{T} (GeV/#it{c});Acceptance#times Efficiency;')
     h_frame.GetXaxis().SetTitleOffset(1.2)
     h_frame.GetYaxis().SetTitleOffset(1.5)
     h_frame.GetYaxis().SetTitleSize(0.04)
@@ -202,6 +202,7 @@ def compute_efficiency(config_file_name): # pylint: disable=too-many-statements
 
         for pt in df_reco['fPt']:
             h_reco_trigger.Fill(pt)
+        h_reco_trigger.Scale(1./config['eff_frac'])
 
         sel_to_apply = ''
         for cut_var in cut_set:
@@ -213,6 +214,7 @@ def compute_efficiency(config_file_name): # pylint: disable=too-many-statements
         df_reco = df_reco.query(sel_to_apply)
         for pt in df_reco['fPt']:
             h_reco.Fill(pt)
+        h_reco.Scale(1./config['eff_frac'])
 
         # Get the number of generated and reconstructed particles in the given pt range
         n_reco_unc, n_reco_trigger_unc, n_gen_unc, n_gen_in_acc_unc = (ctypes.c_double() for _ in range(4))

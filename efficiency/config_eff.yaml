@@ -10,5 +10,6 @@ gen:
   pt_axis: 0
 
 cutset_file_name: 'config/cutset.yaml'
+eff_frac: 0.2
 
-output_file_name: 'efficiency/efficiency.root'
+output_file_name: 'efficiency/default/efficiency_i3_i4_from_bdt_test.root'
