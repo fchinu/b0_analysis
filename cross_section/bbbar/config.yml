@@ -1,0 +1,12 @@
+int_cross_sec: cross_section/integrated/integrated_cross_section_shift_template_DK_w_syst.root
+
+FF:
+  pp: 0.344
+  ee: 0.408
+  central: 'pp'
+
+rapidity_correction:
+  value: 1.06
+  unc: 0.01
+
+output: cross_section/bbbar/bbbar_cross_section_shift_template_with_DK.root

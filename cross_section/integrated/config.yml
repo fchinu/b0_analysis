@@ -1,0 +1,12 @@
+inputs:
+  cross_section: systematics/cross_section_default_low_pt_shift_template_DK_w_syst.root
+  fonll_visible: cross_section/integrated/fonll_bhadron_nnpdfs30_1_23p5.txt
+  fonll_integrated: cross_section/integrated/fonll_bhadron_nnpdfs30_0_100.txt
+
+systematics:
+  uncorrelated: ["rawy"]
+  correlated: ["bdt", "single_track", "tracking", "lumi", "br"]
+
+output:
+  dir: cross_section/integrated
+  file_name: integrated_cross_section_shift_template_DK_w_syst.root
