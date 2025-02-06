@@ -4,6 +4,7 @@ Script for the raw-yield extraction of B mesons
 
 import argparse
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # pylint: disable=wrong-import-position
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ import uproot
 import yaml
 from hist import Hist
 from matplotlib.offsetbox import AnchoredText
+import zfit
 from flarefly.data_handler import DataHandler
 from flarefly.fitter import F2MassFitter
 
@@ -96,6 +98,11 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
     with open(cfg["cutset_file_name"], "r") as yml_cfg:  # pylint: disable=unspecified-encoding
         cut_set = yaml.load(yml_cfg, yaml.FullLoader)
 
+    zfit.run.set_cpus_explicit(
+        intra=cfg['zfit_n_cpus']['intra'],
+        inter=cfg['zfit_n_cpus']['inter'],
+    )
+
     particle = cfg["particle"]
     pdg_id = -1
     decay_channel = ""
@@ -178,6 +185,10 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
     else:
         dfs_prd_bkg = dfs_prd_bkg_orig
 
+    df_mc_dummy_dka = pd.read_parquet(cfg["inputs"]["dummy_corr_bkg"])
+    if cfg["fit_configs"]["shift_bkg_templ"]:
+        df_mc_dummy_dka["fM"] = df_mc_dummy_dka["fM"] + cfg["fit_configs"]["shift_bkg_templ"]
+
     # define output file
     outdir = cfg["outputs"]["directory"]
     outfile_name = os.path.join(outdir,
@@ -231,6 +242,12 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                 else:
                     label_bkg_pdf.insert(i_bkg, "Correlated backgrounds")
 
+        data_hdl_dummy_dka = DataHandler(df_mc_dummy_dka, var_name="fM",
+                                         limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
+                                         nbins=cfg["plot_style"]["pt_int"]["n_bins"])
+        bkg_funcs.insert(len(dfs_prd_bkg), "kde_grid")
+        label_bkg_pdf.insert(len(dfs_prd_bkg), r"$\mathrm{B^0\rightarrow D^-K^+}$")        
+
         fitter_ptint = F2MassFitter(data_hdl,
                                     cfg["fit_configs"]["pt_int"]["signal_funcs"],
                                     bkg_funcs,
@@ -254,13 +271,19 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                     data_hdl_prd_bkg.get_norm() * bkg["br_pdg"] / bkg["br_sim"] / denom
                 )
 
+        fitter_ptint.set_background_kde(len(dfs_prd_bkg), data_hdl_dummy_dka)
+        fitter_ptint.fix_bkg_frac_to_signal_pdf(
+            len(dfs_prd_bkg), 0,
+            cfg['fit_configs']['frac_dummy_to_sgn']
+        )
+
         fitter_ptint.set_signal_initpar(0, "sigma", 0.05, limits=[0.03, 0.06])
         fitter_ptint.set_particle_mass(0, pdg_id=pdg_id)
         icombbkg = len(dfs_prd_bkg)
         fitter_ptint.set_background_initpar(icombbkg, "c1", -0.05, limits=[-0.2, 0.])
         fitter_ptint.set_background_initpar(icombbkg, "c2", 0.008, limits=[0.000, 0.030])
         fitter_ptint.set_background_initpar(icombbkg, "lam", -1.2, limits=[-10., 10.])
-        fitter_ptint.set_signal_initpar(0, "frac", 0.05, limits=[0., 1.])
+        fitter_ptint.set_signal_initpar(0, "frac", 0.2, limits=[0., 1.])
         result = fitter_ptint.mass_zfit()
         if result.converged:
             fig, axs = fitter_ptint.plot_mass_fit(style="ATLAS",
@@ -368,6 +391,13 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
             else:
                 label_bkg_pdf.insert(i_bkg, "Correlated backgrounds")                   
 
+        df_mc_dummy_dka_pt = df_mc_dummy_dka.query(f"{pt_min} < fPt < {pt_max}")
+        data_hdl_dummy_dka_pt = DataHandler(df_mc_dummy_dka_pt, var_name="fM",
+                                         limits=cfg["fit_configs"]["pt_int"]["mass_limits"],
+                                         nbins=cfg["plot_style"]["pt_int"]["n_bins"])
+        bkg_funcs.insert(len(dfs_prd_bkg_pt), "kde_grid")
+        label_bkg_pdf.insert(len(dfs_prd_bkg_pt), r"$\mathrm{B^0\rightarrow D^-K^+}$")        
+
         fitter_pt = F2MassFitter(data_hdl,
                                  cfg["fit_configs"]["signal_funcs"][ipt],
                                  bkg_funcs,
@@ -391,6 +421,12 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
                     data_hdl_prd_bkg.get_norm() * bkg["br_pdg"] / bkg["br_sim"] / denom
                 )
 
+        fitter_pt.set_background_kde(len(dfs_prd_bkg_pt), data_hdl_dummy_dka_pt)
+        fitter_pt.fix_bkg_frac_to_signal_pdf(
+            len(dfs_prd_bkg_pt), 0,
+            cfg['fit_configs']['frac_dummy_to_sgn']
+        )
+        
         if not fix_means[ipt]:
             fitter_pt.set_particle_mass(0, pdg_id=pdg_id, limits=[5., 5.56])
         else:
@@ -399,7 +435,7 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
             fitter_pt.set_signal_initpar(0, "sigma", sigmas_mc[ipt], limits=[0.01, 0.1])
         else:
             fitter_pt.set_signal_initpar(0, "sigma", ref_sigmas[ipt], fix=True)
-        fitter_pt.set_signal_initpar(0, "frac", 0.1, limits=[0., 1.])
+        fitter_pt.set_signal_initpar(0, "frac", 0.2, limits=[0., 1.])
         if not cfg["fit_configs"]["fix_correlated_bkg_to_signal"][ipt]:
             fitter_pt.set_background_initpar(0, "frac", 0.05, limits=[0., 1.])
         icombbkg = len(dfs_prd_bkg_pt)
@@ -452,10 +488,10 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
     file_root["h_sigmas_mc"] = create_hist(pt_lims, sigmas_mc, sigmas_mc_unc)
     file_root.close()
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Arguments")
     parser.add_argument("--config", "-c", metavar="text", default="config_fit.yml",
                         help="yaml config file for fit", required=True)
     args = parser.parse_args()
+    
     fit(args.config)
