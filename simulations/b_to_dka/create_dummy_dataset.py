@@ -3,7 +3,7 @@ import ROOT
 
 SIZE = 100000
 
-file = ROOT.TFile.Open('simulations/b_to_dka/MDPi_511_from_DKa_decay.root')
+file = ROOT.TFile.Open('simulations/b_to_dka/MDPi_511_from_DKa_decay_with_pt_cuts.root')
 tree = file.Get('treeBtoDKa')
 
 pt_mins = [1, 2, 4, 6, 8, 10, 14]
@@ -11,7 +11,7 @@ pt_maxs = [2, 4, 6, 8, 10, 14, 23.5]
 
 df = pd.DataFrame(columns=['fM', 'fPt', 'ML_output'])
 for pt_min, pt_max in zip(pt_mins, pt_maxs):
-    tree.Draw('mBSmeared >> h_mb_smeared(760,4.9,5.66)', f'pTB>{pt_min} && pTB<{pt_max}', 'goff')
+    tree.Draw('mBSmeared >> h_mb_smeared(760,4.9,5.66)', f'pTB>{pt_min} && pTB<{pt_max} && selected==1', 'goff')
     h_mb_smeared = ROOT.gDirectory.Get('h_mb_smeared')
 
     mass = []
@@ -24,5 +24,5 @@ for pt_min, pt_max in zip(pt_mins, pt_maxs):
     df = pd.concat([df, pd.DataFrame({'fM': mass, 'fPt': pt,
                                     'ML_output': ml_score, 'fPdgCodeBeautyMother': b_mother, 'fPdgCodeCharmMother': c_mother})])
 
-df.to_parquet("simulations/b_to_dka/dummy_for_template.parquet")
+df.to_parquet("simulations/b_to_dka/dummy_for_template_with_pt_cuts.parquet")
     
