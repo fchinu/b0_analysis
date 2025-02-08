@@ -164,5 +164,7 @@ cython_debug/
 # Analysis outputs
 *.pdf 
 *.png 
+*.eps
 *.root 
 *.parquet.gzip
+*.parquet
