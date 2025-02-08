@@ -1,0 +1,14 @@
+# FONLL heavy quark hadroproduction cross section, calculated on Wed Feb  5 09:33:18 CET 2025
+# FONLL version and perturbative order: ## FONLL v1.4.0 fonll [ds/dpt^2dy (pb/GeV^2)]
+# quark = bottom
+# final state = quark
+# ebeam1 = 2515, ebeam2 = 2515
+# PDF set = NNPDF30_nlo_as_0118
+# ptmin = 0
+# ptmax = 100
+# ymin  = -0.5
+# ymax  = 0.5
+# Uncertainties from scales, masses, PDFs combined quadratically
+# cross section is sigma (pb)
+ptmin ptmax central min max min_sc max_sc min_mass max_mass min_pdf max_pdf fr=.5.5 fr=22 fr=21 fr=12 fr=1.5 fr=.51
+0.0000 100.0000 2.7160e+07 1.7572e+07 3.9060e+07 1.8310e+07 3.8220e+07 2.3560e+07 3.1480e+07 2.6360e+07 2.7950e+07 2.8000e+07 2.6080e+07 3.3040e+07 2.0400e+07 3.8220e+07 1.8310e+07
