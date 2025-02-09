@@ -12,12 +12,18 @@ inputs:
        ML/application/default/LHC24i3_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
        ML/application/default/LHC24i4_B0ToDPi_pT_6_100_ModelApplied.parquet.gzip,
        ]
+  dummy_corr_bkg: simulations/b_to_dka/dummy_for_template.parquet
 
 cutset_file_name: 'config/cutset.yaml'
+
+zfit_n_cpus:
+  intra: 10
+  inter: 10
 
 fit_configs:
   reference_file_for_fix_sigma_mean: null
   shift_bkg_templ: -0.02        # numerical value or null
+  frac_dummy_to_sgn: 0.0816     # 0.205/2.51, for B->DK
   pt_int:
     activate: true
     signal_funcs: ["gaussian"]
@@ -68,7 +74,7 @@ fit_configs:
     sim: 0.17052154195011338 # 0.4 * 0.42630385487528344
   fix_correlated_bkg_to_signal: [true, true, true, true, true, true, true]
   fix_mean: false # bool or list of bool
-  fix_sigma: true # bool or list of bool
+  fix_sigma: false # bool or list of bool
 
 plot_style:
   pt_int:
