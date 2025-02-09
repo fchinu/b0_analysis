@@ -1,0 +1,54 @@
+BR:
+    Dzero: 0.03951
+    Dplus: 0.0938
+    Ds: 0.0222
+    Dstar: 0.0263
+    Lc: 1.
+BRunc:
+    Dzero: 0.00031
+    Dplus: 0.0016
+    Ds: 0.0006
+    Dstar: 0.0003
+    Lc: 0.000000
+BRpred: # BRs used in the FONLL predictions (sigma x BR) from 2020 (https://pdg.lbl.gov/2020/tables/rpp2020-sum-mesons.pdf) --> necessary to divide times same quantity to get sigma
+    Dzero: 0.03950
+    Dplus: 0.0938
+    Ds: 0.0222
+    Lc: 0.0110028 # we use pK0S
+lumiunc: 0.016
+
+latex: 
+  title: 'ALICE'
+  system: 'pp'
+  BR: 'BR syst. unc. not shown'
+
+models:
+    FONLL:
+        bbbar:
+            68dot6GeV: models/FONLL-bbbar-y05-pp68dot6GeV_pt0-100.txt
+            500GeV: models/FONLL-bbbar-y05-pp500GeV_pt0-100.txt
+            5dot02TeV: models/FONLL-bbbar-y05-pp5dot02TeV_pt0-100.txt
+            5dot5TeV: models/FONLL-bbbar-y05-pp5dot5TeV_pt0-100.txt
+            5dot36TeV: models/FONLL-bbbar-y05-pp5dot36TeV_pt0-100.txt
+            7TeV: models/FONLL-bbbar-y05-pp7TeV_pt0-100.txt
+            8TeV: models/FONLL-bbbar-y05-pp8TeV_pt0-100.txt
+            8dot16TeV: models/FONLL-bbbar-y05-pp8TeV_pt0-100.txt
+            13TeV: models/FONLL-bbbar-y05-pp13TeV_pt0-100.txt
+            13dot6TeV: models/FONLL-bbbar-y05-pp13dot6TeV_pt0-100.txt
+
+ptintcross:
+    nonprompt:
+        Dzero: 'ptintcross/NonPromptDzero_PtIntegr2-24_FONLLextrap.root'
+        Ds: 'ptintcross/NonPromptDs_PtIntegr2-24_FONLLextrap.root'
+        Dplus: 'ptintcross/NonPromptDplus_PtIntegr2-24_FONLLextrap.root'
+        Lc: ptintcross/NonPromptLc_PtIntegr2-24_FONLLextrap.root
+    bbbar:
+        Dzero: ptintcross/CrossSection_bbbar_FromNonPromptDzero_FONLLextrap.root
+        Ds: 'ptintcross/CrossSection_bbbar_FromNonPromptDs_FONLLextrap.root'
+        Dplus: 'ptintcross/CrossSection_bbbar_FromNonPromptDplus_FONLLextrap.root'
+        Lc: ptintcross/CrossSection_bbbar_FromNonPromptLc_FONLLextrap.root
+        DzeroLc: ptintcross/bbbarTot.root # DzeroLc = Dzero + Dplus + Ds + Lc
+        average: ptintcross/CrossSection_bbbar_FromNonPromptDaverage_FONLLextrap.root
+
+
+debug: False # additional printing enabled
