@@ -179,10 +179,16 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
     dfs_prd_bkg_sampled = []
     if cfg["fit_configs"]["pt_int"]["bkg_templ_opt"] == 1:
         lengths = [len(df_bkg) for df_bkg in dfs_prd_bkg_orig]
+        min_positive_lenght = min([l for l in lengths if l > 0])
+        sample_fracs = [frac * min_positive_lenght / length / max(fracs_ptint_norm) for frac, length in zip(fracs_ptint_norm, lengths) if length > 0]
         for frac, length, df_bkg in zip(fracs_ptint_norm, lengths, dfs_prd_bkg_orig):
             if length > 0:
-                dfs_prd_bkg_sampled.append(
-                    df_bkg.sample(frac=frac * min(lengths) / length, random_state=42))
+                sample_frac = frac * min_positive_lenght / length / max(fracs_ptint_norm) / max(sample_fracs)
+                if sample_frac == 1.:
+                    dfs_prd_bkg_sampled.append(df_bkg)
+                else:
+                    dfs_prd_bkg_sampled.append(
+                        df_bkg.sample(frac=sample_frac, random_state=42))
 
         dfs_prd_bkg.append(pd.concat(dfs_prd_bkg_sampled))
     else:
@@ -376,9 +382,18 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
 
         dfs_prd_bkg_pt = []
         dfs_prd_bkg_sampled_pt = []
-        if cfg["fit_configs"]["pt_int"]["bkg_templ_opt"] == 1:
-            for frac, df_bkg in zip(fracs_pt_norm, dfs_prd_bkg_orig_pt):
-                dfs_prd_bkg_sampled_pt.append(df_bkg.sample(frac=frac, random_state=42))
+        if cfg["fit_configs"]["bkg_templ_opt"][ipt] == 1:
+            lengths = [len(df_bkg) for df_bkg in dfs_prd_bkg_orig_pt]
+            min_positive_lenght = min([l for l in lengths if l > 0])
+            sample_fracs = [frac * min_positive_lenght / length / max(fracs_pt_norm) for frac, length in zip(fracs_pt_norm, lengths) if length > 0]
+            for frac, length, df_bkg in zip(fracs_pt_norm, lengths, dfs_prd_bkg_orig_pt):
+                if length > 0:
+                    sample_frac = frac * min_positive_lenght / length / max(fracs_pt_norm) / max(sample_fracs)
+                    if sample_frac == 1.:
+                        dfs_prd_bkg_sampled_pt.append(df_bkg)
+                    else:
+                        dfs_prd_bkg_sampled_pt.append(
+                            df_bkg.sample(frac=sample_frac, random_state=42))
 
             dfs_prd_bkg_pt.append(pd.concat(dfs_prd_bkg_sampled_pt))
         else:
