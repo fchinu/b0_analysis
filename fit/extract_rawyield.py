@@ -178,8 +178,10 @@ def fit(config_file): # pylint: disable=too-many-locals,too-many-statements, too
 
     dfs_prd_bkg_sampled = []
     if cfg["fit_configs"]["pt_int"]["bkg_templ_opt"] == 1:
-        for frac, df_bkg in zip(fracs_ptint_norm, dfs_prd_bkg_orig):
-            dfs_prd_bkg_sampled.append(df_bkg.sample(frac=frac, random_state=42))
+        lengths = [len(df_bkg) for df_bkg in dfs_prd_bkg_orig]
+        for frac, length, df_bkg in zip(fracs_ptint_norm, lengths, dfs_prd_bkg_orig):
+            dfs_prd_bkg_sampled.append(
+                df_bkg.sample(frac=frac * min(lengths) / length, random_state=42))
 
         dfs_prd_bkg.append(pd.concat(dfs_prd_bkg_sampled))
     else:
