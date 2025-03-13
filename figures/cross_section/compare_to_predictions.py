@@ -16,7 +16,7 @@ ROOT.gStyle.SetPadTickY(1)
 if __name__ == '__main__':
 
     # Get cross section
-    data_file = ROOT.TFile.Open('systematics/cross_section_default_shift_template_DK_w_syst.root')
+    data_file = ROOT.TFile.Open('systematics/cross_section_default_DK_pt_cuts_w_syst_fabio_fix.root')
     h_stat = data_file.Get('h_stat')
     h_stat.SetDirectory(0)
     h_syst = data_file.Get('h_syst')
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     pad_ratio_fonll.cd()
     pad_ratio_fonll.SetBottomMargin(0)
     pad_ratio_fonll.SetTopMargin(0)
-    h_frame_ratio_fonll = pad_ratio_fonll.DrawFrame(1, 0.2, 23.5,2.5, ';#it{p}_{T} (GeV/#it{c});#frac{Data}{FONLL}')
+    h_frame_ratio_fonll = pad_ratio_fonll.DrawFrame(1, 0.2, 23.5,2.495, ';#it{p}_{T} (GeV/#it{c});#frac{Data}{FONLL}')
     h_frame_ratio_fonll.GetXaxis().SetTitleOffset(1.1)
     h_frame_ratio_fonll.GetYaxis().SetTitleOffset(0.35)
     h_frame_ratio_fonll.GetYaxis().CenterTitle(True)
@@ -268,6 +268,8 @@ if __name__ == '__main__':
 
     g_ratio_data_fonll_syst.Draw('same 5') 
 
+    pad_ratio_fonll.RedrawAxis()
+
     pad_ratios.cd()
 
     pad_ratio_gmvfns = ROOT.TPad('pad_ratio_gmvfns', 'pad_ratio_gmvfns', 0, 0.6, 1, 0.8)
@@ -275,7 +277,7 @@ if __name__ == '__main__':
     pad_ratio_gmvfns.cd()
     pad_ratio_gmvfns.SetBottomMargin(0)
     pad_ratio_gmvfns.SetTopMargin(0)
-    h_frame_ratio_gmvfns = pad_ratio_gmvfns.DrawFrame(1, 0.2, 23.5,2.5, ';#it{p}_{T} (GeV/#it{c});#lower[0.1]{#frac{Data}{mod-#mu_{#lower[-0.2]{R,F}}}}')
+    h_frame_ratio_gmvfns = pad_ratio_gmvfns.DrawFrame(1, 0.2, 23.5,2.495, ';#it{p}_{T} (GeV/#it{c});#lower[0.1]{#frac{Data}{mod-#mu_{#lower[-0.2]{R,F}}}}')
     h_frame_ratio_gmvfns.GetXaxis().SetTitleOffset(1.1)
     h_frame_ratio_gmvfns.GetYaxis().SetTitleOffset(0.35)
     h_frame_ratio_gmvfns.GetYaxis().CenterTitle(True)
@@ -306,7 +308,9 @@ if __name__ == '__main__':
         g_ratio_data_gmvfns_syst.SetPoint(i, g_syst.GetX()[i], g_syst.GetY()[i]/g_pred_gmvfns.GetY()[i])
         g_ratio_data_gmvfns_syst.SetPointError(i, g_syst.GetErrorX(i), g_syst.GetErrorY(i)/g_pred_gmvfns.GetY()[i])
 
-    g_ratio_data_gmvfns_syst.Draw('same 5') 
+    g_ratio_data_gmvfns_syst.Draw('same 5')
+
+    pad_ratio_gmvfns.RedrawAxis()
 
     pad_ratios.cd()
 
@@ -315,7 +319,7 @@ if __name__ == '__main__':
     pad_ratio_gmvfns_mt_sacot.cd()
     pad_ratio_gmvfns_mt_sacot.SetBottomMargin(0)
     pad_ratio_gmvfns_mt_sacot.SetTopMargin(0)
-    h_frame_ratio_gmvfns_mt_sacot = pad_ratio_gmvfns_mt_sacot.DrawFrame(1, 0.2, 23.5,2.5, ';#it{p}_{T} (GeV/#it{c});#lower[0.1]{#frac{Data}{SACOT #it{m}_{T}}}')
+    h_frame_ratio_gmvfns_mt_sacot = pad_ratio_gmvfns_mt_sacot.DrawFrame(1, 0.2, 23.5,2.495, ';#it{p}_{T} (GeV/#it{c});#lower[0.1]{#frac{Data}{SACOT #it{m}_{T}}}')
     h_frame_ratio_gmvfns_mt_sacot.GetXaxis().SetTitleOffset(1.1)
     h_frame_ratio_gmvfns_mt_sacot.GetYaxis().SetTitleOffset(0.35)
     h_frame_ratio_gmvfns_mt_sacot.GetYaxis().CenterTitle(True)
@@ -348,6 +352,8 @@ if __name__ == '__main__':
 
     g_ratio_data_gmvfns_mt_sacot_syst.Draw('same 5') 
 
+    pad_ratio_gmvfns_mt_sacot.RedrawAxis()
+
     pad_ratios.cd()
 
     pad_ratio_kt = ROOT.TPad('pad_ratio_kt', 'pad_ratio_kt', 0, 0.2, 1, 0.4)
@@ -355,7 +361,7 @@ if __name__ == '__main__':
     pad_ratio_kt.cd()
     pad_ratio_kt.SetBottomMargin(0)
     pad_ratio_kt.SetTopMargin(0)
-    h_frame_ratio_kt = pad_ratio_kt.DrawFrame(1, 0.2, 23.5,2.5, ';#it{p}_{T} (GeV/#it{c});#lower[0.09]{#frac{Data}{#it{k}_{T} fact.}}')
+    h_frame_ratio_kt = pad_ratio_kt.DrawFrame(1, 0.2, 23.5,2.495, ';#it{p}_{T} (GeV/#it{c});#lower[0.09]{#frac{Data}{#it{k}_{T} fact.}}')
     h_frame_ratio_kt.GetXaxis().SetTitleOffset(1.1)
     h_frame_ratio_kt.GetYaxis().SetTitleOffset(0.35)
     h_frame_ratio_kt.GetYaxis().CenterTitle(True)
@@ -388,6 +394,8 @@ if __name__ == '__main__':
 
     g_ratio_data_kt_syst.Draw('same 5') 
 
+    pad_ratio_kt.RedrawAxis()
+
     pad_ratios.cd()
 
     pad_ratio_tamu = ROOT.TPad('pad_ratio_tamu', 'pad_ratio_tamu', 0, 0., 1, 0.2)
@@ -395,7 +403,7 @@ if __name__ == '__main__':
     pad_ratio_tamu.cd()
     pad_ratio_tamu.SetBottomMargin(0)
     pad_ratio_tamu.SetTopMargin(0)
-    h_frame_ratio_tamu = pad_ratio_tamu.DrawFrame(1, 0.2, 23.5,2.5, ';#it{p}_{T} (GeV/#it{c});#frac{Data}{TAMU}')
+    h_frame_ratio_tamu = pad_ratio_tamu.DrawFrame(1, 0.2, 23.5,2.495, ';#it{p}_{T} (GeV/#it{c});#frac{Data}{TAMU}')
     h_frame_ratio_tamu.GetXaxis().SetTitleOffset(1.1)
     h_frame_ratio_tamu.GetYaxis().SetTitleOffset(0.35)
     h_frame_ratio_tamu.GetYaxis().CenterTitle(True)
@@ -416,7 +424,7 @@ if __name__ == '__main__':
         h_tamu_int.SetBinError(i, 0)
 
     pt_bins = h_tamu_int.GetXaxis().GetXbins()
-    h_tamu_unc = ROOT.TH1D('h_tamu_unc', 'h_tamu_unc', h_tamu_int.GetNbinsX()-1, np.array(pt_bins)[:-1])
+    h_tamu_unc = ROOT.TH1D('h_tamu_unc', 'h_tamu_unc', g_pred_tamu.GetN(), 0, 20.)
     for i in range(1, h_tamu_unc.GetNbinsX()+1):
         h_tamu_unc.SetBinContent(i, 1)
         h_tamu_unc.SetBinError(i, 0.)
@@ -446,4 +454,6 @@ if __name__ == '__main__':
 
     g_ratio_data_tamu_syst.Draw('same 5') 
 
-    c.SaveAs('figures/cross_section/cross_section_vs_pred_shift_template_with_DK_pt_cuts_w_syst.pdf')
+    pad_ratio_tamu.RedrawAxis()
+
+    c.SaveAs('figures/cross_section/cross_section_vs_pred_shift_template_with_DK_pt_cuts_w_syst_fabio_fix.pdf')
