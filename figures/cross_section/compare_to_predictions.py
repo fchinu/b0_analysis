@@ -99,39 +99,47 @@ if __name__ == '__main__':
 
     g_pred_fonll.SetLineColorAlpha(colors[0], 0.5)
     g_pred_fonll.SetLineWidth(2)
+    g_pred_fonll.SetMarkerColorAlpha(ROOT.kBlack, 0.)
     g_pred_fonll.SetFillStyle(1001)
-    g_pred_fonll.SetFillColorAlpha(colors[0], 0.5)
+    g_pred_fonll.SetFillColorAlpha(colors[0], 0.7)
 
     h_pred_fonll.SetLineColorAlpha(colors[0], 0.5)
     h_pred_fonll.SetLineWidth(2)
-    h_pred_fonll.SetMarkerColorAlpha(colors[0], 0.5)
-
+    h_pred_fonll.SetMarkerColorAlpha(ROOT.kBlack, 0.)
+    h_pred_fonll.SetFillColorAlpha(colors[0], 0.7)
+    
     g_pred_gmvfns.SetLineColorAlpha(colors[1], 0.5)
     g_pred_gmvfns.SetLineWidth(2)
+    g_pred_gmvfns.SetMarkerColorAlpha(ROOT.kBlack, 0.)
     g_pred_gmvfns.SetFillStyle(1001)
-    g_pred_gmvfns.SetFillColorAlpha(colors[1], 0.5)
+    g_pred_gmvfns.SetFillColorAlpha(colors[1], 0.7)
 
     h_pred_gmvfns.SetLineColorAlpha(colors[1], 0.5)
     h_pred_gmvfns.SetLineWidth(2)
-    h_pred_gmvfns.SetMarkerColorAlpha(colors[1], 0.5)
+    h_pred_gmvfns.SetMarkerColorAlpha(ROOT.kBlack, 0.)
+    h_pred_gmvfns.SetFillColorAlpha(colors[1], 0.7)
 
     g_pred_gmvfns_mt_sacot.SetLineColorAlpha(colors[2], 0.5)
     g_pred_gmvfns_mt_sacot.SetLineWidth(2)
+    g_pred_gmvfns_mt_sacot.SetMarkerColorAlpha(ROOT.kBlack, 0.)
     g_pred_gmvfns_mt_sacot.SetFillStyle(1001)
-    g_pred_gmvfns_mt_sacot.SetFillColorAlpha(colors[2], 0.5)
+    g_pred_gmvfns_mt_sacot.SetFillColorAlpha(colors[2], 0.35)
 
     h_pred_gmvfns_mt_sacot.SetLineColorAlpha(colors[2], 0.5)
     h_pred_gmvfns_mt_sacot.SetLineWidth(2)
-    h_pred_gmvfns_mt_sacot.SetMarkerColorAlpha(colors[2], 0.5)
+    h_pred_gmvfns_mt_sacot.SetMarkerColorAlpha(ROOT.kBlack, 0.)
+    h_pred_gmvfns_mt_sacot.SetFillColorAlpha(colors[2], 0.35)
 
     g_pred_kt.SetLineColorAlpha(colors[4], 0.5)
     g_pred_kt.SetLineWidth(2)
+    g_pred_kt.SetMarkerColorAlpha(ROOT.kBlack, 0.)
     g_pred_kt.SetFillStyle(1001)
-    g_pred_kt.SetFillColorAlpha(colors[4], 0.5)
+    g_pred_kt.SetFillColorAlpha(colors[4], 0.35)
 
     h_pred_kt.SetLineColorAlpha(colors[4], 0.5)
     h_pred_kt.SetLineWidth(2)
-    h_pred_kt.SetMarkerColorAlpha(colors[4], 0.5)
+    h_pred_kt.SetMarkerColorAlpha(ROOT.kBlack, 0.)
+    h_pred_kt.SetFillColorAlpha(colors[4], 0.35)
 
     g_pred_tamu.SetLineColorAlpha(colors[3], 1)
     g_pred_tamu.SetLineWidth(3)
@@ -165,7 +173,7 @@ if __name__ == '__main__':
     g_syst.Draw('same 5')
 
     # Legend
-    leg = ROOT.TLegend(0.4, 0.55, 0.55, 0.76)
+    leg = ROOT.TLegend(0.4, 0.56, 0.55, 0.77)
     leg.SetBorderSize(0)
     leg.SetFillStyle(0)
     leg.SetTextSize(0.04)
@@ -173,23 +181,17 @@ if __name__ == '__main__':
     leg.AddEntry(h_stat, 'Data', 'lp')
     leg.AddEntry(g_pred_fonll, 'FONLL', 'fl')
     leg.AddEntry(g_pred_gmvfns, 'GM-VFNS (mod-#mu_{#lower[-0.2]{R,F}})', 'fl')
-    leg.AddEntry(g_pred_gmvfns_mt_sacot, 'GM-VFNS, SACOT #it{m}_{T}', 'fl')
+    leg.AddEntry(g_pred_gmvfns_mt_sacot, 'GM-VFNS, SACOT#kern[0.3]{#it{m}_{T}}', 'fl')
     leg.AddEntry(g_pred_kt, '#it{k}_{T} fact.', 'fl')
     leg.AddEntry(g_pred_tamu, 'TAMU', 'l')
     leg.Draw()
 
     # Add the text
-    text_decay = ROOT.TLatex(0.41, 0.8, 'B^{0} mesons')
+    text_decay = ROOT.TLatex(0.41, 0.78, 'B^{0} mesons')
     text_decay.SetNDC()
     text_decay.SetTextSize(0.04)
     text_decay.SetTextFont(42)
     text_decay.Draw()
-
-    text_conj = ROOT.TLatex(0.41, 0.77, 'and charge conjugate')
-    text_conj.SetNDC()
-    text_conj.SetTextSize(0.04)
-    text_conj.SetTextFont(42)
-    text_conj.Draw()
 
     text_ALICE = ROOT.TLatex(0.15, 0.88, 'ALICE Preliminary')
     text_ALICE.SetNDC()
@@ -319,7 +321,7 @@ if __name__ == '__main__':
     pad_ratio_gmvfns_mt_sacot.cd()
     pad_ratio_gmvfns_mt_sacot.SetBottomMargin(0)
     pad_ratio_gmvfns_mt_sacot.SetTopMargin(0)
-    h_frame_ratio_gmvfns_mt_sacot = pad_ratio_gmvfns_mt_sacot.DrawFrame(1, 0.2, 23.5,2.495, ';#it{p}_{T} (GeV/#it{c});#lower[0.1]{#frac{Data}{SACOT #it{m}_{T}}}')
+    h_frame_ratio_gmvfns_mt_sacot = pad_ratio_gmvfns_mt_sacot.DrawFrame(1, 0.2, 23.5,2.495, ';#it{p}_{T} (GeV/#it{c});#lower[0.1]{#frac{Data}{SACOT#kern[0.3]{#it{m}_{T}}}}')
     h_frame_ratio_gmvfns_mt_sacot.GetXaxis().SetTitleOffset(1.1)
     h_frame_ratio_gmvfns_mt_sacot.GetYaxis().SetTitleOffset(0.35)
     h_frame_ratio_gmvfns_mt_sacot.GetYaxis().CenterTitle(True)
@@ -456,4 +458,4 @@ if __name__ == '__main__':
 
     pad_ratio_tamu.RedrawAxis()
 
-    c.SaveAs('figures/cross_section/cross_section_vs_pred_shift_template_with_DK_pt_cuts_w_syst_fabio_fix.pdf')
+    c.SaveAs('figures/cross_section/cross_section_vs_pred.pdf')
