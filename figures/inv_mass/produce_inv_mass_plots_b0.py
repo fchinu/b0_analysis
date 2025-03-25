@@ -23,11 +23,11 @@ def set_data_style(hist, isnorm=False):
     if isnorm:
         hist.GetYaxis().SetTitle(
             f"Normalised counts per {hist.GetBinWidth(1)*1000:.0f} MeV/#it{{c}}^{{2}}")
-        hist.GetYaxis().SetRangeUser(0., hist.GetMaximum() * 1.1)
+        hist.GetYaxis().SetRangeUser(0., hist.GetMaximum() * 1.2)
         hist.SetMarkerSize(1.6)
     else:
         hist.GetYaxis().SetTitle(f"Counts per {hist.GetBinWidth(1)*1000:.0f} MeV/#it{{c}}^{{2}}")
-        hist.GetYaxis().SetRangeUser(0.1, hist.GetMaximum() * 1.1)
+        hist.GetYaxis().SetRangeUser(0.1, hist.GetMaximum() * 1.2)
     hist.GetXaxis().SetTitle("#it{M}(D^{#mp}#pi^{#pm}) (GeV/#it{c}^{2})")
 
     hist.GetXaxis().SetTitleSize(0.045)
@@ -35,7 +35,7 @@ def set_data_style(hist, isnorm=False):
     hist.GetYaxis().SetNdivisions(508)
     hist.GetXaxis().SetLabelSize(0.045)
     hist.GetYaxis().SetTitleSize(0.045)
-    hist.GetYaxis().SetTitleOffset(1.2)
+    hist.GetYaxis().SetTitleOffset(1.3)
     hist.GetYaxis().SetLabelSize(0.045)
     hist.GetYaxis().SetDecimals()
     hist.GetYaxis().SetMaxDigits(3)
@@ -178,8 +178,10 @@ def plot(infile_name, colors, version, pt_min=None, pt_max=None):
     if pt_min is None and pt_max is None:
         leg_corr = ROOT.TLegend(0.14, 0.3, 0.35, 0.55)
     elif pt_min==2 and pt_max==4:
-        leg_corr = ROOT.TLegend(0.14, 0.25, 0.35, 0.50)
+        leg_corr = ROOT.TLegend(0.14, 0.2, 0.35, 0.45)
     elif pt_min==10 and pt_max==14:
+        leg_corr = ROOT.TLegend(0.14, 0.23, 0.35, 0.48)
+    elif pt_min==14 and pt_max==24:
         leg_corr = ROOT.TLegend(0.14, 0.28, 0.35, 0.53)
     leg_corr.SetTextSize(0.03)
     leg_corr.SetBorderSize(0)
@@ -228,7 +230,7 @@ def plot(infile_name, colors, version, pt_min=None, pt_max=None):
         func_signal.Draw("lsame")
     lat.DrawLatex(0.595, 0.86, "ALICE Preliminary")
     lat.DrawLatex(0.35, 0.8,
-                  "pp,#sqrt{#it{s}} = 13.6 TeV, #font[132]{L}_{int} = 43 pb^{#minus1}")
+                  "pp,#sqrt{#it{s}} = 13.6 TeV, #font[132]{#it{L}}_{int} = 43 pb^{#minus1}")
 
     if pt_min is None and pt_max is None:
         lat.DrawLatex(0.56, 0.74, "1 < #kern[-0.3]{#it{p}_{T}} < 23.5 GeV/#it{c}")

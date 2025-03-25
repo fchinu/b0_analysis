@@ -95,29 +95,29 @@ markerstyles = {'200GeV': {'HFe': kOpenStar}, '630GeV': {'B': kOpenSquare}, '1do
 sigma = {'5dot02TeV': {'eePO': 28, 'eePy': 34, 'Jpsi': 34.7},
          '7TeV': {'eePO': 23, 'eePy': 48, 'HFe': 42.3},
          '13TeV': {'eePO': 48, 'eePy': 79, 'Jpsi': 73.3},
-         '13dot6TeV': {'B0': 82.2}}
+         '13dot6TeV': {'B0': 80.6}}
 
 stat = {'5dot02TeV': {'eePO': 5, 'eePy': 4, 'Jpsi': 5.9},
         '7TeV': {'eePO': 4, 'eePy': 8, 'HFe': 3.5},
         '13TeV': {'eePO': 14, 'eePy': 14, 'Jpsi': 6.1},
-        '13dot6TeV': {'B0': 4.6}}
+        '13dot6TeV': {'B0': 4.4}}
 
 systLow = {'5dot02TeV': {'eePO': np.sqrt(1**2+2**2), 'eePy': np.sqrt(2**2+2**2),
                          'Jpsi': np.sqrt(5.2**2+3.0**2+0.7**2)},
            '7TeV': {'eePO': np.sqrt(11**2+1**2), 'eePy': np.sqrt(12**2+3**2), 'HFe': 11.9},
            '13TeV': {'eePO': 7, 'eePy': 11, 'Jpsi': 9.3},
-           '13dot6TeV': {'B0': 12.9}}
+           '13dot6TeV': {'B0': 12.7}}
 
 systHigh = {'5dot02TeV': {'eePO': np.sqrt(1**2+2**2), 'eePy': np.sqrt(2**2+2**2),
                           'Jpsi': np.sqrt(5.2**2+3.0**2+0.7**2)},
             '7TeV': {'eePO': np.sqrt(11**2+1**2), 'eePy': np.sqrt(12**2+3**2), 'HFe': 12.3},
             '13TeV': {'eePO': 7, 'eePy': 11, 'Jpsi': 9.3},
-            '13dot6TeV': {'B0': 12.9}}
+            '13dot6TeV': {'B0': 12.7}}
 
 extrapSystLow = {'5dot02TeV': {'Jpsi': 2.3, 'eePO': 0, 'eePy': 0},
                  '7TeV': {'eePO': 0, 'eePy': 0, 'HFe': 1.7},
                  '13TeV': {'eePO': 0, 'eePy': 0, 'Jpsi': 2.3},
-                 '13dot6TeV': {'B0': 12.9}}
+                 '13dot6TeV': {'B0': 12.7}}
 
 extrapSystHigh = {'5dot02TeV': {'Jpsi': 1.1, 'eePO': 0, 'eePy': 0},
                   '7TeV': {'eePO': 0, 'eePy': 0, 'HFe': 1.1},
@@ -499,9 +499,9 @@ nnlo['13TeV']['central'] = 72.26
 nnlo['13TeV']['min'] = 72.26*(1-0.27)
 nnlo['13TeV']['max'] = 72.26*(1+0.31)
 
-nnlo['13dot6TeV']['central'] = 72.26
-nnlo['13dot6TeV']['min'] = 72.26*(1-0.27)
-nnlo['13dot6TeV']['max'] = 72.26*(1+0.31)
+nnlo['13dot6TeV']['central'] = 74.8
+nnlo['13dot6TeV']['min'] = 74.8*(1-0.26)
+nnlo['13dot6TeV']['max'] = 74.8*(1+0.32)
 
 iE = 0
 for energy in energies:

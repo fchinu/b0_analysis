@@ -18,13 +18,16 @@ if __name__ == '__main__':
     pt_bins = [2., 4., 6., 8., 16]
 
     # Get cross section
-    data_file = ROOT.TFile.Open('systematics/cross_section_default_DK_pt_cuts_w_syst.root')
+    data_file = ROOT.TFile.Open('systematics/cross_section_default_DK_pt_cuts_w_syst_fabio_fix.root')
     h_stat = data_file.Get('h_stat')
     h_stat.SetDirectory(0)
     h_syst = data_file.Get('h_syst')
     h_syst.SetDirectory(0)
     g_syst = ROOT.TGraphErrors(h_syst)
     data_file.Close()
+
+    h_stat.Scale(1.e-6) # convert to µb
+    g_syst.Scale(1.e-6) # convert to µb
 
     # Get CMS results
     cms_file = ROOT.TFile.Open('cms/cms_bplus_13_tev_table_2.root')
@@ -51,14 +54,9 @@ if __name__ == '__main__':
     g_stat_cms_1p45.Scale(1./2.9) # divide by rapidity range
     g_stat_cms_2p1.Scale(1./4.2) # divide by rapidity range
 
-    g_stat_cms_1p45.Scale(1.e6) # convert to pb
-    g_stat_cms_2p1.Scale(1.e6) # convert to pb
-
     g_syst_cms_1p45.Scale(1./2.9) # divide by rapidity range
     g_syst_cms_2p1.Scale(1./4.2) # divide by rapidity range
 
-    g_syst_cms_1p45.Scale(1.e6) # convert to pb
-    g_syst_cms_2p1.Scale(1.e6) # convert to pb
     g_stat_cms_1p45.Print()
 
 
@@ -67,18 +65,21 @@ if __name__ == '__main__':
     g_pred_fonll_alice = fonll_file.Get('gBhadrNNPDF30')
     fonll_file.Close()
 
+    g_pred_fonll_alice.Scale(1.e-6) # convert to µb
+
     pt_bins_fonll = np.append(np.asarray(g_pred_fonll_alice.GetX(), 'd') - np.asarray(g_pred_fonll_alice.GetEXlow(), 'd'), g_pred_fonll_alice.GetX()[g_pred_fonll_alice.GetN()-1] + g_pred_fonll_alice.GetEXhigh()[g_pred_fonll_alice.GetN()-1])
 
     h_pred_fonll_alice = ROOT.TH1F('h_pred_fonll', 'h_pred_fonll', g_pred_fonll_alice.GetN(), pt_bins_fonll)
     for i in range(1, g_pred_fonll_alice.GetN()+1):
         h_pred_fonll_alice.SetBinContent(i, g_pred_fonll_alice.GetY()[i-1])
+        h_pred_fonll_alice.SetBinError(i, 1.e-12)
 
     # Get predictions
     fonll_file = ROOT.TFile.Open('fonll/fonll_bhadron_nnpdfs_13tev_y1p45.root')
     g_pred_fonll_cms_1p45 = fonll_file.Get('gBhadrNNPDF30')
     fonll_file.Close()
 
-    # g_pred_fonll_cms_1p45.Scale(1.e6) # convert to pb
+    g_pred_fonll_cms_1p45.Scale(1.e-6) # convert to µb
     g_pred_fonll_cms_1p45.Scale(1./2.9) # divide by rapidity range
 
     pt_bins_fonll = np.append(np.asarray(g_pred_fonll_cms_1p45.GetX(), 'd') - np.asarray(g_pred_fonll_cms_1p45.GetEXlow(), 'd'), g_pred_fonll_cms_1p45.GetX()[g_pred_fonll_cms_1p45.GetN()-1] + g_pred_fonll_cms_1p45.GetEXhigh()[g_pred_fonll_cms_1p45.GetN()-1])
@@ -86,13 +87,14 @@ if __name__ == '__main__':
     h_pred_fonll_cms_1p45 = ROOT.TH1F('h_pred_fonll', 'h_pred_fonll', g_pred_fonll_cms_1p45.GetN(), pt_bins_fonll)
     for i in range(1, g_pred_fonll_cms_1p45.GetN()+1):
         h_pred_fonll_cms_1p45.SetBinContent(i, g_pred_fonll_cms_1p45.GetY()[i-1])
+        h_pred_fonll_cms_1p45.SetBinError(i, 1.e-12)
 
     # Get predictions
     fonll_file = ROOT.TFile.Open('fonll/fonll_bhadron_nnpdfs_13tev_y2p1.root')
     g_pred_fonll_cms_2p1 = fonll_file.Get('gBhadrNNPDF30')
     fonll_file.Close()
 
-    # g_pred_fonll_cms_2p1.Scale(1.e6) # convert to pb
+    g_pred_fonll_cms_2p1.Scale(1.e-6) # convert to µb
     g_pred_fonll_cms_2p1.Scale(1./4.2) # divide by rapidity range
 
     pt_bins_fonll = np.append(np.asarray(g_pred_fonll_cms_2p1.GetX(), 'd') - np.asarray(g_pred_fonll_cms_2p1.GetEXlow(), 'd'), g_pred_fonll_cms_2p1.GetX()[g_pred_fonll_cms_2p1.GetN()-1] + g_pred_fonll_cms_2p1.GetEXhigh()[g_pred_fonll_cms_2p1.GetN()-1])
@@ -100,6 +102,7 @@ if __name__ == '__main__':
     h_pred_fonll_cms_2p1 = ROOT.TH1F('h_pred_fonll', 'h_pred_fonll', g_pred_fonll_cms_2p1.GetN(), pt_bins_fonll)
     for i in range(1, g_pred_fonll_cms_2p1.GetN()+1):
         h_pred_fonll_cms_2p1.SetBinContent(i, g_pred_fonll_cms_2p1.GetY()[i-1])
+        h_pred_fonll_cms_2p1.SetBinError(i, 1.e-12)
 
     # Set the style
     colors, _ = root_colors_from_matplotlib_colormap('tab10')
@@ -199,13 +202,13 @@ if __name__ == '__main__':
     pad_cross_sec.cd()
     pad_cross_sec.SetLogy()
     pad_cross_sec.SetLogx()
-    h_frame = pad_cross_sec.DrawFrame(1, 5, 100, 4.e8, ';#it{p}_{T} (GeV/#it{c});d^{2}#sigma/d#it{p}_{T}d#it{y} (pb #it{c} / GeV) ')
+    h_frame = pad_cross_sec.DrawFrame(1, 5e-6, 100, 4.e2, ';#it{p}_{T} (GeV/#it{c});d^{2}#sigma/d#it{p}_{T}d#it{y} (#mub GeV^{#minus1}#kern[0.25]{#it{c}}) ')
     h_frame.GetXaxis().SetTitleOffset(1.1)
-    h_frame.GetYaxis().SetTitleOffset(1.3)
-    h_frame.GetXaxis().SetTitleSize(0.04)
-    h_frame.GetYaxis().SetTitleSize(0.04)
-    h_frame.GetXaxis().SetLabelSize(0.04)
-    h_frame.GetYaxis().SetLabelSize(0.04)
+    h_frame.GetYaxis().SetTitleOffset(1.195)
+    h_frame.GetXaxis().SetTitleSize(0.045)
+    h_frame.GetYaxis().SetTitleSize(0.045)
+    h_frame.GetXaxis().SetLabelSize(0.045)
+    h_frame.GetYaxis().SetLabelSize(0.045)
     g_pred_fonll_cms_2p1.Draw('same 2')
     h_pred_fonll_cms_2p1.Draw('same e')
     g_pred_fonll_alice.Draw('same 2')
@@ -220,10 +223,10 @@ if __name__ == '__main__':
     g_syst.Draw('same 5')
 
     # Legend
-    leg_alice = ROOT.TLegend(0.6, 0.73, 0.7, 0.83)
+    leg_alice = ROOT.TLegend(0.6, 0.78, 0.7, 0.88)
     leg_alice.SetBorderSize(0)
     leg_alice.SetFillStyle(0)
-    leg_alice.SetTextSize(0.04)
+    leg_alice.SetTextSize(0.05)
     leg_alice.SetMargin(0.7)
     leg_alice.SetHeader('ALICE, #sqrt{#it{s}} = 13.6 TeV')
     leg_alice.AddEntry(h_stat, '|#it{y}| < 0.5', 'lp')
@@ -232,7 +235,7 @@ if __name__ == '__main__':
     leg_cms = ROOT.TLegend(0.14, 0.03, 0.24, 0.18)
     leg_cms.SetBorderSize(0)
     leg_cms.SetFillStyle(0)
-    leg_cms.SetTextSize(0.04)
+    leg_cms.SetTextSize(0.05)
     leg_cms.SetMargin(0.7)
     leg_cms.SetHeader('CMS, #sqrt{#it{s}} = 13 TeV')
     leg_cms.AddEntry(g_stat_cms_1p45, '|#it{y}| < 1.45', 'lp')
@@ -242,7 +245,7 @@ if __name__ == '__main__':
     leg_fonll = ROOT.TLegend(0.45, 0.03, 0.55, 0.23)
     leg_fonll.SetBorderSize(0)
     leg_fonll.SetFillStyle(0)
-    leg_fonll.SetTextSize(0.04)
+    leg_fonll.SetTextSize(0.05)
     leg_fonll.SetMargin(0.7)
     leg_fonll.SetHeader('FONLL')
     leg_fonll.AddEntry(g_pred_fonll_alice, '#sqrt{#it{s}} = 13.6 TeV, |#it{y}| < 0.5', 'lf')
@@ -251,29 +254,17 @@ if __name__ == '__main__':
     leg_fonll.Draw()
 
     # Add the text
-    text_decay_alice = ROOT.TLatex(0.61, 0.9, 'B^{0}#rightarrow D^{#font[122]{-}}#pi^{+}#rightarrow#pi^{#font[122]{-}}K^{+}#pi^{#font[122]{-}}#pi^{+}')
+    text_decay_alice = ROOT.TLatex(0.61, 0.9, 'B^{0} mesons')
     text_decay_alice.SetNDC()
-    text_decay_alice.SetTextSize(0.04)
+    text_decay_alice.SetTextSize(0.05)
     text_decay_alice.SetTextFont(42)
     text_decay_alice.Draw()
 
-    text_conj_alice = ROOT.TLatex(0.61, 0.85, 'and charge conjugate')
-    text_conj_alice.SetNDC()
-    text_conj_alice.SetTextSize(0.04)
-    text_conj_alice.SetTextFont(42)
-    text_conj_alice.Draw()
-
-    text_decay_cms = ROOT.TLatex(0.15, 0.25, 'B^{+}#rightarrow J/#PsiK^{+}#rightarrow#mu^{#font[122]{-}}#mu^{+}K^{+}')
+    text_decay_cms = ROOT.TLatex(0.15, 0.2, 'B^{+} mesons')
     text_decay_cms.SetNDC()
-    text_decay_cms.SetTextSize(0.04)
+    text_decay_cms.SetTextSize(0.05)
     text_decay_cms.SetTextFont(42)
     text_decay_cms.Draw()
-
-    text_conj_cms = ROOT.TLatex(0.15, 0.2, 'and charge conjugate')
-    text_conj_cms.SetNDC()
-    text_conj_cms.SetTextSize(0.04)
-    text_conj_cms.SetTextFont(42)
-    text_conj_cms.Draw()
 
     text_ALICE = ROOT.TLatex(0.15, 0.9, 'ALICE Preliminary')
     text_ALICE.SetNDC()
@@ -283,7 +274,7 @@ if __name__ == '__main__':
 
     text_pp = ROOT.TLatex(0.15, 0.85, 'pp collisions')
     text_pp.SetNDC()
-    text_pp.SetTextSize(0.04)
+    text_pp.SetTextSize(0.05)
     text_pp.SetTextFont(42)
     text_pp.Draw()
 
@@ -314,11 +305,12 @@ if __name__ == '__main__':
     pad_ratio_cms.cd()
     h_frame_ratio_cms = pad_ratio_cms.DrawFrame(1, 0.2, 100, 2.75, ';#it{p}_{T} (GeV/#it{c});Data/FONLL_{ }')
     h_frame_ratio_cms.GetXaxis().SetTitleOffset(1.1)
-    h_frame_ratio_cms.GetYaxis().SetTitleOffset(0.335)
-    h_frame_ratio_cms.GetXaxis().SetTitleSize(0.16)
-    h_frame_ratio_cms.GetYaxis().SetTitleSize(0.16)
-    h_frame_ratio_cms.GetXaxis().SetLabelSize(0.16)
-    h_frame_ratio_cms.GetYaxis().SetLabelSize(0.16)
+    h_frame_ratio_cms.GetYaxis().SetTitleOffset(0.33)
+    h_frame_ratio_cms.GetYaxis().SetLabelOffset(0.01)
+    h_frame_ratio_cms.GetXaxis().SetTitleSize(0.17)
+    h_frame_ratio_cms.GetYaxis().SetTitleSize(0.17)
+    h_frame_ratio_cms.GetXaxis().SetLabelSize(0.17)
+    h_frame_ratio_cms.GetYaxis().SetLabelSize(0.17)
     h_frame_ratio_cms.GetYaxis().SetNdivisions(505)
     h_frame_ratio_cms.GetXaxis().SetTickLength(0.12)
 
@@ -392,5 +384,6 @@ if __name__ == '__main__':
     h_ratio_data_fonll_stat.Draw('same p')
     g_ratio_data_fonll_syst.Draw('same 5') 
 
+    ROOT.gPad.RedrawAxis()
 
-    c.SaveAs('figures/cross_section/cross_section_vs_CMS_23_24_shift_template_with_DK_pt_cuts_w_syst.pdf')
+    c.SaveAs('figures/cross_section/cross_section_vs_CMS.pdf')
