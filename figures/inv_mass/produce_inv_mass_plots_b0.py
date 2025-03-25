@@ -31,6 +31,7 @@ def set_data_style(hist, isnorm=False):
     hist.GetXaxis().SetTitle("#it{M}(D^{#mp}#pi^{#pm}) (GeV/#it{c}^{2})")
 
     hist.GetXaxis().SetTitleSize(0.045)
+    hist.GetXaxis().SetTitleOffset(1.2)
     hist.GetXaxis().SetNdivisions(508)
     hist.GetYaxis().SetNdivisions(508)
     hist.GetXaxis().SetLabelSize(0.045)
@@ -149,7 +150,7 @@ def plot(infile_name, colors, version, pt_min=None, pt_max=None):
     lat.SetNDC()
     lat.SetTextFont(42)
     lat.SetTextColor(ROOT.kBlack)
-    lat.SetTextSize(0.045)
+    lat.SetTextSize(0.05)
 
     lat_small = ROOT.TLatex()
     lat_small.SetNDC()
@@ -228,21 +229,16 @@ def plot(infile_name, colors, version, pt_min=None, pt_max=None):
         func_totfunc.Draw("lsame")
         hist_signal.DrawCopy("histsame")
         func_signal.Draw("lsame")
-    lat.DrawLatex(0.353, 0.80,
-                  "pp,#kern[0.04]{#sqrt{#it{s}} = 13.6 TeV},#kern[0.09]{#font[132]{#it{L}}_{int} = 43 pb^{#minus1}}")
-    lat_alice = ROOT.TLatex()
-    lat_alice.SetNDC()
-    lat_alice.SetTextFont(42)
-    lat_alice.SetTextColor(ROOT.kBlack)
-    lat_alice.SetTextSize(0.05)
-    lat_alice.DrawLatex(0.563, 0.86, "ALICE Preliminary")
+    lat.DrawLatex(0.57, 0.85, "ALICE Preliminary")
+    lat_small.DrawLatex(0.416, 0.79,
+                        "pp,#kern[0.04]{#sqrt{#it{s}} = 13.6 TeV},#kern[0.09]{#font[132]{#it{L}}_{int} = 43 pb^{#minus1}}")
 
     if pt_min is None and pt_max is None:
-        lat.DrawLatex(0.56, 0.74, "1 < #kern[-0.3]{#it{p}_{T}} < 23.5 GeV/#it{c}")
+        lat_small.DrawLatex(0.60, 0.73, "1 < #kern[-0.3]{#it{p}_{T}} < 23.5 GeV/#it{c}")
     elif pt_min==2 and pt_max==4:
-        lat.DrawLatex(0.60, 0.74, f"{pt_min} < #it{{p}}_{{T}} < {pt_max} GeV/#it{{c}}")
+        lat_small.DrawLatex(0.64, 0.73, f"{pt_min} < #it{{p}}_{{T}} < {pt_max} GeV/#it{{c}}")
     elif pt_min==10 and pt_max==14:
-        lat.DrawLatex(0.56, 0.74, f"{pt_min} < #it{{p}}_{{T}} < {pt_max} GeV/#it{{c}}")
+        lat_small.DrawLatex(0.60, 0.73, f"{pt_min} < #it{{p}}_{{T}} < {pt_max} GeV/#it{{c}}")
     leg.Draw()
     leg2.Draw()
     leg_corr.Draw()
