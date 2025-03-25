@@ -499,9 +499,9 @@ nnlo['13TeV']['central'] = 72.26
 nnlo['13TeV']['min'] = 72.26*(1-0.27)
 nnlo['13TeV']['max'] = 72.26*(1+0.31)
 
-nnlo['13dot6TeV']['central'] = 72.26
-nnlo['13dot6TeV']['min'] = 72.26*(1-0.27)
-nnlo['13dot6TeV']['max'] = 72.26*(1+0.31)
+nnlo['13dot6TeV']['central'] = 74.8
+nnlo['13dot6TeV']['min'] = 74.8*(1-0.26)
+nnlo['13dot6TeV']['max'] = 74.8*(1+0.32)
 
 iE = 0
 for energy in energies:

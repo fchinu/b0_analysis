@@ -35,7 +35,7 @@ def set_data_style(hist, isnorm=False):
     hist.GetYaxis().SetNdivisions(508)
     hist.GetXaxis().SetLabelSize(0.045)
     hist.GetYaxis().SetTitleSize(0.045)
-    hist.GetYaxis().SetTitleOffset(1.2)
+    hist.GetYaxis().SetTitleOffset(1.3)
     hist.GetYaxis().SetLabelSize(0.045)
     hist.GetYaxis().SetDecimals()
     hist.GetYaxis().SetMaxDigits(3)

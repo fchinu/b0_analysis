@@ -153,7 +153,7 @@ if __name__ == '__main__':
     pad_cross_sec.Draw()
     pad_cross_sec.cd()
     pad_cross_sec.SetLogy()
-    h_frame = pad_cross_sec.DrawFrame(1, 2.e-2, 23.5, 3.e2, ';#it{p}_{T} (GeV/#it{c});d^{2}#sigma/d#it{p}_{T}d#it{y} (#mub #kern[-0.5]{#it{c}} / GeV)')
+    h_frame = pad_cross_sec.DrawFrame(1, 2.e-2, 23.5, 3.e2, ';#it{p}_{T} (GeV/#it{c});d^{2}#sigma/d#it{p}_{T}d#it{y} (#mub GeV^{#minus1}#kern[0.25]{#it{c}})')
     h_frame.GetXaxis().SetTitleOffset(1.1)
     h_frame.GetYaxis().SetTitleOffset(1.3)
     h_frame.GetXaxis().SetTitleSize(0.04)
