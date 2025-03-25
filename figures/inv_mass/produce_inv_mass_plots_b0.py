@@ -228,9 +228,14 @@ def plot(infile_name, colors, version, pt_min=None, pt_max=None):
         func_totfunc.Draw("lsame")
         hist_signal.DrawCopy("histsame")
         func_signal.Draw("lsame")
-    lat.DrawLatex(0.595, 0.86, "ALICE Preliminary")
-    lat.DrawLatex(0.35, 0.8,
-                  "pp,#sqrt{#it{s}} = 13.6 TeV, #font[132]{#it{L}}_{int} = 43 pb^{#minus1}")
+    lat.DrawLatex(0.353, 0.80,
+                  "pp,#kern[0.04]{#sqrt{#it{s}} = 13.6 TeV},#kern[0.09]{#font[132]{#it{L}}_{int} = 43 pb^{#minus1}}")
+    lat_alice = ROOT.TLatex()
+    lat_alice.SetNDC()
+    lat_alice.SetTextFont(42)
+    lat_alice.SetTextColor(ROOT.kBlack)
+    lat_alice.SetTextSize(0.05)
+    lat_alice.DrawLatex(0.563, 0.86, "ALICE Preliminary")
 
     if pt_min is None and pt_max is None:
         lat.DrawLatex(0.56, 0.74, "1 < #kern[-0.3]{#it{p}_{T}} < 23.5 GeV/#it{c}")
