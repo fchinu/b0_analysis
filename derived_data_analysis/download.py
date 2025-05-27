@@ -6,8 +6,9 @@ import os
 import argparse
 import math
 import multiprocessing
+import uproot
 
-def download_from_directory(task_id, input_directory, is_slim):
+def download_from_directory(task_id, input_directory, is_slim, runs):
     """
     Function to be executed in parallel that downloads all the files for a specific run
     """
@@ -43,6 +44,16 @@ def download_from_directory(task_id, input_directory, is_slim):
         os.mkdir(train_id)
     for ifile, line in enumerate(lines):
         os.system(f"alien_cp {line} file:{train_id}/AnalysisResults_{ifile:03d}.root")
+        # Only select files which have the wanted run numbers
+        if runs:
+            with uproot.open(f"{train_id}/AnalysisResults_{ifile:03d}.root") as f:
+                run_numbers = f["bc-selection-task"]["hCounterTVX"].axis().labels()
+                run_numbers = [int(run) for run in run_numbers if run.isdigit()]
+                # check if any of the run numbers is in the list
+                if not any(run in runs for run in run_numbers):
+                    os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
+                    continue
+
         if os.system(f"alien_cp {line.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{ifile:03d}.root") != 0:
             # AO2D not found, let's delete also AnalysisResults.root
             os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
@@ -50,7 +61,7 @@ def download_from_directory(task_id, input_directory, is_slim):
     print(f"Processing task {task_id} - DONE")
 
 
-def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim):
+def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim, runs):
     """
     Main function to download and merge output files from hyperloop
     """
@@ -65,10 +76,18 @@ def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim)
 
     num_workers = min(num_workers, os.cpu_count())  # Get the number of available CPU cores)
 
+    # Get the runs from the runs file
+    if runs is not None:
+        with open(runs, 'r') as file:
+            runs = file.read().strip()
+        runs = runs.split(',')
+        runs = [run.strip() for run in runs if run.strip().isdigit()]
+        runs = [int(run) for run in runs]
+
     with multiprocessing.Pool(processes=num_workers) as pool:
         pool.starmap(
             download_from_directory,
-            [(i, directory, is_slim) for i, directory in enumerate(output_directories)]
+            [(i, directory, is_slim, runs) for i, directory in enumerate(output_directories)]
         )
 
     files_to_merge = []
@@ -114,6 +133,8 @@ if __name__ == "__main__":
                         required=False)
     PARSER.add_argument("--slim", action="store_true", default=False,
                         help="option for slim outputs on hyperloop", required=False)
+    PARSER.add_argument("--runs", metavar="text", required=False, default=None,
+                        help="text input file with run numbers to download (only for non-slim files)")
     ARGS = PARSER.parse_args()
 
-    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files, ARGS.slim)
+    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files, ARGS.slim, ARGS.runs)
