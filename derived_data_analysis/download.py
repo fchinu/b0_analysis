@@ -47,7 +47,7 @@ def download_from_directory(task_id, input_directory, is_slim, runs):
         # Only select files which have the wanted run numbers
         if runs:
             with uproot.open(f"{train_id}/AnalysisResults_{ifile:03d}.root") as f:
-                run_numbers = f["bc-selection-task"]["hCounterTVX"].axis().labels()
+                run_numbers = f["lumi-task"]["hCounterTVX"].axis().labels()
                 run_numbers = [int(run) for run in run_numbers if run.isdigit()]
                 # check if any of the run numbers is in the list
                 if not any(run in runs for run in run_numbers):
