@@ -82,7 +82,7 @@ if __name__ == '__main__':
     h_frame.GetXaxis().SetLabelSize(0.04)
     h_frame.GetYaxis().SetLabelSize(0.04)
     g_pred_tamu.Draw('same L')
-    g_pred_catania.Draw('same E2')
+    g_pred_catania.Draw('same E3')
     h_stat.Draw('same p')
     g_syst.Draw('same 5')
 
