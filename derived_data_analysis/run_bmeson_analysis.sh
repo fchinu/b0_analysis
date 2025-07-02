@@ -2,6 +2,7 @@
 
 MC=0                    # Default value for MC
 PARTICLE="b0"           # Default value for PARTICLE
+JPSI="0"                # Default value for JPSI (for studies of B -> J/psi X)
 CHARMDAUGHTER="d"
 JOBS=1
 DELETE=0
@@ -36,10 +37,19 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             PARTICLE="$2"
-            if [[ "$PARTICLE" != "bplus" && "$PARTICLE" != "b0" ]]; then
+            if [[ "$PARTICLE" != "bplus" && "$PARTICLE" != "b0" && "$PARTICLE" != "bs" ]]; then
                 echo "Wrong particle: only 'bplus' and 'b0' are accepted"
                 exit 1
             fi
+            shift # Move past argument value
+            shift # Move past argument name
+            ;;
+        --jpsi)
+            if [[ -z "$2" ]]; then
+                echo "Error: Missing argument for --jpsi"
+                exit 1
+            fi
+            JPSI="$2"
             shift # Move past argument value
             shift # Move past argument name
             ;;
@@ -53,16 +63,28 @@ done
 # Output the final values
 echo "MC: $MC"
 echo "Particle: $PARTICLE"
+echo "Jpsi: $JPSI"
 
 if [ "$PARTICLE" == "bplus" ]; then
     CHARMDAUGHTER="d0"
 fi
 
-JSONCONFIG=dpl-config_${PARTICLE}_mc.json
+JSONCONFIG=""
 FILENAME="input_mc.txt"
 if [ $MC -eq 0 ]; then
-    JSONCONFIG=dpl-config_${PARTICLE}.json
+    if [ $JPSI -eq 1 ]; then
+        JSONCONFIG=dpl-config_${PARTICLE}_jpsi.json
+    else
+        JSONCONFIG=dpl-config_${PARTICLE}.json
+    fi
     FILENAME="input_data.txt"
+else
+    if [ $JPSI -eq 1 ]; then
+        JSONCONFIG=dpl-config_${PARTICLE}_jpsi_mc.json
+    else
+        JSONCONFIG=dpl-config_${PARTICLE}_mc.json
+    fi
+    FILENAME="input_mc.txt"
 fi
 COMMONCONFIGS="-b --aod-memory-rate-limit 1000000000 --configuration json://../$JSONCONFIG --shm-segment-size 7500000000"
 
@@ -103,8 +125,16 @@ while IFS= read -r line; do
     fi
 done < "$FILENAME"
 
-parallel -j "$JOBS" 'mkdir -p output_{#} && cd output_{#} && o2-analysis-hf-task-b0-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-selector-'"$PARTICLE"'-to-d-pi-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-creator-'"$PARTICLE"'-reduced '"$COMMONCONFIGS"' --aod-writer-json ../OutputDirector_'"$PARTICLE"'.json --resources-monitoring 2 --fairmq-ipc-prefix . --aod-file @../{1} > log_{#}.txt 2>&1 && cd ..' ::: ${INPUTNAMES[@]}
-
+if [ $JPSI -eq 0 ]; then
+    parallel -j "$JOBS" 'mkdir -p output_{#} && cd output_{#} && o2-analysis-hf-task-'"$PARTICLE"'-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-selector-'"$PARTICLE"'-to-d-pi-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-creator-'"$PARTICLE"'-reduced '"$COMMONCONFIGS"' --aod-writer-json ../OutputDirector_'"$PARTICLE"'.json --resources-monitoring 2 --fairmq-ipc-prefix . --aod-file @../{1} > log_{#}.txt 2>&1 && cd ..' ::: ${INPUTNAMES[@]}
+else
+    DAU="k"
+    if [ "$PARTICLE" == "bs" ]; then
+        DAU="phi"
+    fi
+    parallel -j "$JOBS" 'mkdir -p output_{#} && cd output_{#} && o2-analysis-hf-task-'"$PARTICLE"'-to-jpsi-'"$DAU"'-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-creator-b-to-jpsi-reduced '"$COMMONCONFIGS"' --aod-writer-json ../OutputDirector_'"$PARTICLE"'_jpsi.json --resources-monitoring 2 --fairmq-ipc-prefix . --aod-file @../{1} > log_{#}.txt 2>&1 && cd ..' ::: ${INPUTNAMES[@]}
+fi
+# o2-analysis-hf-task-'"$PARTICLE"'-to-jpsi-'"$DAU"'-reduced '"$COMMONCONFIGS"' | 
 # loop on all the output files and merge them
 declare -a ANALYSISRESULTS=()
 for i in $(seq 1 $((NFILES))); do
