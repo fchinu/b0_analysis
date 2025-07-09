@@ -8,7 +8,7 @@ import math
 import multiprocessing
 import uproot
 
-def download_from_directory(task_id, input_directory, is_slim, runs):
+def download_from_directory(task_id, input_directory, is_slim, runs, an_res_only):
     """
     Function to be executed in parallel that downloads all the files for a specific run
     """
@@ -54,14 +54,15 @@ def download_from_directory(task_id, input_directory, is_slim, runs):
                     os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
                     continue
 
-        if os.system(f"alien_cp {line.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{ifile:03d}.root") != 0:
-            # AO2D not found, let's delete also AnalysisResults.root
-            os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
+        if not an_res_only:
+            if os.system(f"alien_cp {line.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{ifile:03d}.root") != 0:
+                # AO2D not found, let's delete also AnalysisResults.root
+                os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
 
     print(f"Processing task {task_id} - DONE")
 
 
-def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim, runs):
+def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim, runs, an_res_only):
     """
     Main function to download and merge output files from hyperloop
     """
@@ -87,7 +88,7 @@ def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim,
     with multiprocessing.Pool(processes=num_workers) as pool:
         pool.starmap(
             download_from_directory,
-            [(i, directory, is_slim, runs) for i, directory in enumerate(output_directories)]
+            [(i, directory, is_slim, runs, an_res_only) for i, directory in enumerate(output_directories)]
         )
 
     files_to_merge = []
@@ -135,6 +136,8 @@ if __name__ == "__main__":
                         help="option for slim outputs on hyperloop", required=False)
     PARSER.add_argument("--runs", metavar="text", required=False, default=None,
                         help="text input file with run numbers to download (only for non-slim files)")
+    PARSER.add_argument("--an_res_only", action="store_true", default=False,
+                        help="option for only downloading analysis results (not AO2D)", required=False)
     ARGS = PARSER.parse_args()
 
-    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files, ARGS.slim, ARGS.runs)
+    download_and_merge(ARGS.input_file, ARGS.jobs, ARGS.suffix, ARGS.n_merged_files, ARGS.slim, ARGS.runs, ARGS.an_res_only)
