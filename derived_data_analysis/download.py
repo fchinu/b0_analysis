@@ -8,12 +8,11 @@ import math
 import multiprocessing
 import uproot
 
-def download_from_directory(task_id, input_directory, is_slim, runs, an_res_only):
+def get_files_from_directory(input_directory, is_slim):
     """
-    Function to be executed in parallel that downloads all the files for a specific run
+    Function to get all the files from a specific directory
     """
 
-    print(f"Processing task {task_id}")
     train_id = input_directory.split(sep="/")[-1]
     if is_slim:
         os.system(f"alien_find alien://{input_directory} "
@@ -25,7 +24,7 @@ def download_from_directory(task_id, input_directory, is_slim, runs, an_res_only
     lines = []
     check_unmerged = False
     with open(f"outputs_{train_id}.txt") as file:
-        lines = [line.rstrip() for line in file]
+        lines = [(line.rstrip(), train_id) for line in file]
 
         if len(lines) == 0:
             check_unmerged = True
@@ -38,26 +37,35 @@ def download_from_directory(task_id, input_directory, is_slim, runs, an_res_only
             for line in file:
                 if "Stage" in line: # we do not want partially merged files
                     continue
-                lines.append(line.rstrip())
+                lines.append((line.rstrip(), train_id))
 
     if not os.path.isdir(train_id):
         os.mkdir(train_id)
-    for ifile, line in enumerate(lines):
-        os.system(f"alien_cp {line} file:{train_id}/AnalysisResults_{ifile:03d}.root")
-        # Only select files which have the wanted run numbers
-        if runs:
-            with uproot.open(f"{train_id}/AnalysisResults_{ifile:03d}.root") as f:
-                run_numbers = f["lumi-task"]["hCounterTVX"].axis().labels()
-                run_numbers = [int(run) for run in run_numbers if run.isdigit()]
-                # check if any of the run numbers is in the list
-                if not any(run in runs for run in run_numbers):
-                    os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
-                    continue
 
-        if not an_res_only:
-            if os.system(f"alien_cp {line.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{ifile:03d}.root") != 0:
-                # AO2D not found, let's delete also AnalysisResults.root
-                os.system(f"rm {train_id}/AnalysisResults_{ifile:03d}.root")
+    return lines
+
+
+def download_file(task_id, file, train_id, runs, an_res_only):
+    """
+    Function to be executed in parallel that downloads all the files for a specific run
+    """
+
+    print(f"Processing task {task_id} - START")
+    os.system(f"alien_cp {file} file:{train_id}/AnalysisResults_{task_id:03d}.root")
+    # Only select files which have the wanted run numbers
+    if runs:
+        with uproot.open(f"{train_id}/AnalysisResults_{task_id:03d}.root") as f:
+            run_numbers = f["eventselection-run3"]["luminosity"]["hCounterTVX"].axis().labels()
+            run_numbers = [int(run) for run in run_numbers if run.isdigit()]
+            # check if any of the run numbers is in the list
+            if not any(run in runs for run in run_numbers):
+                os.system(f"rm {train_id}/AnalysisResults_{task_id:03d}.root")
+                return
+
+    if not an_res_only:
+        if os.system(f"alien_cp {file.replace('AnalysisResults', 'AO2D')} file:{train_id}/AO2D_{task_id:03d}.root") != 0:
+            # AO2D not found, let's delete also AnalysisResults.root
+            os.system(f"rm {train_id}/AnalysisResults_{task_id:03d}.root")
 
     print(f"Processing task {task_id} - DONE")
 
@@ -86,9 +94,17 @@ def download_and_merge(input_file, num_workers, suffix, n_merged_files, is_slim,
         runs = [int(run) for run in runs]
 
     with multiprocessing.Pool(processes=num_workers) as pool:
+        files = pool.starmap(
+            get_files_from_directory,
+            [(directory, is_slim) for directory in output_directories]
+        )
+
+    files = [item for sublist in files for item in sublist]  # Flatten the list of lists
+
+    with multiprocessing.Pool(processes=num_workers) as pool:
         pool.starmap(
-            download_from_directory,
-            [(i, directory, is_slim, runs, an_res_only) for i, directory in enumerate(output_directories)]
+            download_file,
+            [(i, file[0], file[1], runs, an_res_only) for i, file in enumerate(files)]
         )
 
     files_to_merge = []
