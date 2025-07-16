@@ -126,7 +126,7 @@ while IFS= read -r line; do
 done < "$FILENAME"
 
 if [ $JPSI -eq 0 ]; then
-    parallel -j "$JOBS" 'mkdir -p output_{#} && cd output_{#} && o2-analysis-hf-task-'"$PARTICLE"'-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-selector-'"$PARTICLE"'-to-d-pi-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-creator-'"$PARTICLE"'-reduced '"$COMMONCONFIGS"' --aod-writer-json ../OutputDirector_'"$PARTICLE"'.json --resources-monitoring 2 --fairmq-ipc-prefix . --aod-file @../{1} > log_{#}.txt 2>&1 && cd ..' ::: ${INPUTNAMES[@]}
+    parallel -j "$JOBS" 'mkdir -p output_{#} && cd output_{#} && o2-analysis-hf-task-'"$PARTICLE"'-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-selector-'"$PARTICLE"'-to-'"$CHARMDAUGHTER"'-pi-reduced '"$COMMONCONFIGS"' | o2-analysis-hf-candidate-creator-'"$PARTICLE"'-reduced '"$COMMONCONFIGS"' --aod-writer-json ../OutputDirector_'"$PARTICLE"'.json --resources-monitoring 2 --fairmq-ipc-prefix . --aod-file @../{1} > log_{#}.txt 2>&1 && cd ..' ::: ${INPUTNAMES[@]}
 else
     DAU="k"
     if [ "$PARTICLE" == "bs" ]; then
