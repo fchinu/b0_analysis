@@ -122,10 +122,10 @@ if __name__ == "__main__":
                         default="HEPData-ins1630633-v1-root.root",
                         help="input HepData file for LHCb B+ measurement at 13 TeV")
     parser.add_argument("--ptlimits", "-p", nargs="+",
-                        default=[2., 4., 6., 8., 10., 14., 23.5], type=float,
+                        default=[1., 2., 4., 6., 8., 10., 14., 23.5], type=float,
                         help="pt bins to rebin")
     parser.add_argument("--outfile", "-o", metavar="text",
-                        default="LHCb_Bplus_13TeV_rebinned.root",
+                        default="LHCb_Bplus_13TeV_rebinned_pt1.root",
                         help="output file name")
     args = parser.parse_args()
 
