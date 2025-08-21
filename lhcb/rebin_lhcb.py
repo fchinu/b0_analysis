@@ -66,9 +66,9 @@ def get_rebinned_histos(hist, hist_stat, hist_syst, ptlimits, deltay, hist_names
                 cross_sec += hist.GetBinContent(ipt_orig) * bin_width
                 cross_sec_stat += hist_stat.GetBinContent(ipt_orig)**2 * bin_width**2 # uncorrelated
                 cross_sec_syst += hist_syst.GetBinContent(ipt_orig) * bin_width # correlated
-        cross_sec = cross_sec / delta_pt / deltay * nb_to_pb
-        cross_sec_stat = np.sqrt(cross_sec_stat) / delta_pt / deltay * nb_to_pb
-        cross_sec_syst = cross_sec_syst / delta_pt / deltay * nb_to_pb
+        cross_sec = cross_sec / delta_pt / deltay * nb_to_pb / 2 # charge average
+        cross_sec_stat = np.sqrt(cross_sec_stat) / delta_pt / deltay * nb_to_pb / 2 # charge average
+        cross_sec_syst = cross_sec_syst / delta_pt / deltay * nb_to_pb / 2 # charge average
         hist_rebin_stat.SetBinContent(ipt+1, cross_sec)
         hist_rebin_syst.SetBinContent(ipt+1, cross_sec)
         hist_rebin_stat.SetBinError(ipt+1, cross_sec_stat)
@@ -85,7 +85,7 @@ def rebin(infile_name, ptlimits, outfile_name):
 
     infile = ROOT.TFile.Open(infile_name)
     inputdir = infile.Get("Table 3") # rapidity integrated measurement
-    inputdir_rap = infile.Get("Table 1") # rapidity differential measurements
+    inputdir_rap = infile.Get("Table 2") # rapidity differential measurements
     hist_cent_rapint = inputdir.Get("Hist1D_y1")
     hist_stat_rapint = inputdir.Get("Hist1D_y1_e1")
     hist_syst_rapint = inputdir.Get("Hist1D_y1_e2")
