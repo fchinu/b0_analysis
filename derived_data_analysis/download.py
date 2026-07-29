@@ -14,6 +14,8 @@ def get_files_from_directory(input_directory, is_slim):
     """
 
     train_id = input_directory.split(sep="/")[-1]
+    if train_id == "AOD":
+        train_id = input_directory.split(sep="/")[-2]
     if is_slim:
         os.system(f"alien_find alien://{input_directory} "
                   f"AnalysisResults.root -r > outputs_{train_id}.txt")
