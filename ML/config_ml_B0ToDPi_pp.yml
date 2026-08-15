@@ -98,7 +98,7 @@ train_ml:
 apply_ml:
   input:
     file_names: [ 
-      /home/fchinu/Run3/B0_PbPb/derived_data_analysis/Tree_LHC24i4_applied.root
+      inputs/data/LHC25_pass1_applied_full/AO2D_LHC25_pass1_020_applied_processed.root
     ]
     model_names: ["ML/training/B0/loose_preselections/pt0_6/ModelHandler_B0ToDPi_pT_0_6.pickle",
                   "ML/training/B0/loose_preselections/pt6_100/ModelHandler_B0ToDPi_pT_6_100.pickle"]
@@ -108,5 +108,5 @@ apply_ml:
     dir: ML/application
     tree_name: treeB0
     data_tags: [
-                  LHC24i4_applied
+                  LHC25_pass1_020
                ]

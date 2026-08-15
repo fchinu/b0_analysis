@@ -32,9 +32,6 @@ try:
 except ModuleNotFoundError:
     print("Module 'hipe4ml_converter' is not installed. Please install it to run this macro")
 
-LABEL_BKG = 0
-LABEL_SIG = 1
-
 MAX_BKG_FRAC = 0.4  # max of bkg fraction to keep for training
 
 
@@ -113,11 +110,8 @@ class MlTraining(MlCommon):
         if config_train["pt_bins_limits"] is not None:
             pt_bins_limits = enforce_list(config_train["pt_bins_limits"])
             self.pt_bins = [[a, b] for a, b in zip(pt_bins_limits[:-1], pt_bins_limits[1:])]
-        self.sig_infile_name = config_train["input"]["signal_file_name"]
-        self.bkg_infile_name = config_train["input"]["bkg_file_name"] \
-            if config_train["input"]["bkg_file_name"] is not None else self.sig_infile_name
-        self.tag = config_train["tag"]
-        self.filt_bkg_mass = config_train["filt_bkg_mass"]
+        self.infile_names = config_train["input"]
+        self.queries = config_train["query"]
 
         self.seed_split = config_train["seed_split"]
         # (hyper)parameters
@@ -145,6 +139,17 @@ class MlTraining(MlCommon):
         Helper method to check self consistency of inputs
         """
 
+        # inputs and queries, defined per class
+        for label in self.labels:
+            if label not in self.infile_names:
+                print(f"\033[91mERROR: no input file defined for the '{label}' class!\033[0m")
+                sys.exit()
+            if label not in self.queries:
+                print(f"\033[91mERROR: no query defined for the '{label}' class!\033[0m")
+                sys.exit()
+        if "common" not in self.queries:
+            print("\033[91mERROR: the 'common' query must be defined (set it to null if not needed)!\033[0m")
+            sys.exit()
         # class balance
         if self.share not in ("equal", "all_signal"):
             print(f"\033[91mERROR: class_balance option {self.share} not implemented\033[0m")
@@ -176,36 +181,34 @@ class MlTraining(MlCommon):
 
         Returns
         -----------------
-        - hdl_bkg: pandas dataframe containing only background candidates
-        - hdl_sig: pandas dataframe containing only signal candidates
+        - handlers: dictionary containing TreeHandler objects for each class
         """
 
         print("Loading and preparing data files: ...", end="\r")
 
-        # folders = ["DF_2262112103719808;1", "DF_2262112099588224;1", "DF_2262112099851392;1"]
-
-        hdl_bkg = TreeHandler(
-            file_name=self.bkg_infile_name, tree_name=self.tree_name, folder_name=self.folder_name
-            ).get_subset(f"{self.tag} == 0 and ({self.filt_bkg_mass})")
-        hdl_sig = TreeHandler(
-            file_name=self.sig_infile_name, tree_name=self.tree_name, folder_name=self.folder_name
-            ).get_subset(f"{self.tag} == 1 and fFlagWrongCollision == 0")
-
-        hdl_bkg.slice_data_frame(self.name_pt_var, self.pt_bins, True)
-        hdl_sig.slice_data_frame(self.name_pt_var, self.pt_bins, True)
+        handlers = {}
+        for label in self.labels:
+            handlers[label] = TreeHandler(
+                file_name=self.infile_names[label],
+                tree_name=self.tree_name,
+                folder_name=self.folder_name
+            ).get_subset(
+                f"({self.queries[label]}) and ({self.queries['common']})"
+                if self.queries["common"] else self.queries[label]
+            )
+            handlers[label].slice_data_frame(self.name_pt_var, self.pt_bins, True)
 
         print("Loading and preparing data files: Done!")
-        return hdl_bkg, hdl_sig
+        return handlers
 
     # pylint: disable=too-many-statements, too-many-branches, too-many-arguments, too-many-locals, too-many-statements
-    def __data_prep(self, df_bkg, df_sig, pt_bin, out_dir, bkg_factor):
+    def __data_prep(self, dfs, pt_bin, out_dir, bkg_factor):
         """
         Helper method for pt-dependent data preparation
 
         Parameters
         -----------------
-        - df_bkg: pandas dataframe containing only background candidates
-        - df_sig: pandas dataframe containing only sig signal
+        - dfs: dictionary containing pandas dataframes for each class
         - pt_bin: pT bin
         - out_dir: output directory
         - bkg_factor: multiplier for n_sig used to determine n_cand_bkg in the 'all_signal' option
@@ -214,34 +217,33 @@ class MlTraining(MlCommon):
         -----------------
         - train_test_data: list containing train/test sets and the associated model predictions
         """
-
-        n_sig = len(df_sig)
-        n_bkg = len(df_bkg)
+        n_cands = {label: len(dfs[label]) for label in self.labels}
         log_available_cands = (
             f"\nNumber of available candidates "
             f"in {pt_bin[0]} < pT < {pt_bin[1]} GeV/c: \n   "
-            f"Signal: {n_sig}\n   Bkg: {n_bkg}"
+            + "\n   ".join([f"{lab}: {n_cand}" for lab, n_cand in n_cands.items()])
         )
 
         print(log_available_cands)
 
         if self.share == "equal":
-            n_cand_min = min([n_sig, n_bkg])
-            bkg_fraction = n_cand_min / n_bkg
-            n_bkg = n_sig = n_cand_min
+            n_cand_min = min(n_cands.values())
+            bkg_fraction = n_cand_min / n_cands[self.labels[0]]  # bkg fraction to keep for training
+            for lab in self.labels:
+                n_cands[lab] = n_cand_min
             log_share = (
                 "\nKeep the same number of candidates for each class, "
                 "chosen as the minimal number of candidates among all classes."
             )
 
         elif self.share == "all_signal":
-            n_cand_bkg = int(min([n_bkg, n_sig * bkg_factor]))
+            n_cand_bkg = int(min([n_cands[self.labels[0]], sum(n_cands[lab] for lab in self.labels[1:]) * bkg_factor]))
             log_share = (
                 f"\nKeep all signal and use {n_cand_bkg} bkg candidates "
                 f"for training and testing ({1 - self.test_frac}-{self.test_frac})"
             )
-            bkg_fraction = n_cand_bkg / n_bkg
-            n_bkg = n_cand_bkg
+            bkg_fraction = n_cand_bkg / n_cands[self.labels[0]]
+            n_cands[self.labels[0]] = n_cand_bkg
 
         else:
             print(f"\033[91mERROR: class_balance option {self.share} not implemented\033[0m")
@@ -261,7 +263,8 @@ class MlTraining(MlCommon):
         print(log_bkg_fraction)
 
         log_training_cands = (
-            "\nNumber of candidates used for training and testing: \n   " f"Signal: {n_sig}\n   Bkg: {n_bkg}\n"
+            "\nNumber of candidates used for training and testing: \n   "
+            + "\n   ".join([f"{lab}: {n_cand}" for lab, n_cand in n_cands.items()])
         )
 
         print(log_training_cands)
@@ -273,9 +276,9 @@ class MlTraining(MlCommon):
             file.write(log_bkg_fraction)
             file.write(log_training_cands)
 
-        df_tot = pd.concat([df_bkg[:n_bkg], df_sig[:n_sig]], sort=True)
+        df_tot = pd.concat([dfs[label][:n_cands[label]] for label in self.labels], sort=True)
 
-        labels_array = np.array([LABEL_BKG] * n_bkg + [LABEL_SIG] * n_sig)
+        labels_array = np.concatenate([[i] * n_cands[self.labels[i]] for i in range(len(self.labels))])
         if 0 < self.test_frac < 1:
             train_set, test_set, y_train, y_test = train_test_split(
                 df_tot, labels_array, test_size=self.test_frac, random_state=self.seed_split
@@ -295,19 +298,16 @@ class MlTraining(MlCommon):
             )
             sys.exit()
 
-        # plots
-        df_list = [df_bkg, df_sig]
-
         # _____________________________________________
         plot_utils.plot_distr(
-            df_list, self.vars_to_draw, 100, self.labels, figsize=(12, 7), alpha=0.3, log=True, grid=False, density=True
+            [df for df in dfs.values()], self.vars_to_draw, 100, self.labels, figsize=(12, 7), alpha=0.3, log=True, grid=False, density=True
         )
         plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.96, hspace=0.55, wspace=0.55)
         for ext in self.extension:
             plt.savefig(f"{out_dir}/DistributionsAll_pT_{pt_bin[0]}_{pt_bin[1]}.{ext}")
         plt.close("all")
         # _____________________________________________
-        corr_matrix_fig = plot_utils.plot_corr(df_list, self.vars_to_draw, self.labels)
+        corr_matrix_fig = plot_utils.plot_corr([df for df in dfs.values()], self.vars_to_draw, self.labels)
         for fig, lab in zip(corr_matrix_fig, self.labels):
             plt.figure(fig.number)
             plt.subplots_adjust(left=0.2, bottom=0.25, right=0.95, top=0.9)
@@ -339,10 +339,15 @@ class MlTraining(MlCommon):
             with open(os.path.join(out_dir, self.log_file), "a", encoding="utf-8") as file:
                 file.write("\nOptuna hyper-parameters optimisation:")
                 sys.stdout = file
+                cross_val_scoring = self.score_metric
+                if len(self.labels) > 2:
+                    cross_val_scoring += f"_{self.roc_auc_approach}"
+                    if self.roc_auc_average == "weighted":
+                        cross_val_scoring += f"_{self.roc_auc_average}"
                 model_hdl.optimize_params_optuna(
                     train_test_data,
                     self.hyper_pars_opt["hyper_par_ranges"],
-                    cross_val_scoring=self.score_metric,
+                    cross_val_scoring=cross_val_scoring,
                     timeout=self.hyper_pars_opt["timeout"],
                     n_jobs=self.hyper_pars_opt["njobs"],
                     n_trials=self.hyper_pars_opt["ntrials"],
@@ -364,7 +369,7 @@ class MlTraining(MlCommon):
             True,
             output_margin=self.raw_output,
             average=self.roc_auc_average,
-            multi_class_opt=self.roc_auc_approach,
+            multi_class_opt=self.roc_auc_approach
         )
 
         y_pred_train = model_hdl.predict(train_test_data[0], self.raw_output)
@@ -372,15 +377,24 @@ class MlTraining(MlCommon):
         # Save applied model to test set
         test_set_df = train_test_data[2]
         test_set_df = test_set_df.loc[:, self.column_to_save_list]
-        test_set_df["ML_output"] = y_pred_test
+        if y_pred_test.ndim == 2:
+            # For multi-class, store each class probability as a separate column
+            for label in self.labels:
+                test_set_df[f"ML_output_{label}"] = y_pred_test[:, self.labels.index(label)]
+        else:
+            # For binary classification
+            test_set_df["ML_output"] = y_pred_test
 
         test_set_df["Labels"] = train_test_data[3]
 
-        test_set_df_sgn = test_set_df[test_set_df["Labels"] == 1]
-        test_set_df_bkg = test_set_df[test_set_df["Labels"] == 0]
-
-        test_set_df_sgn.to_parquet(f"{out_dir}/{self.channel}_ModelApplied" f"_pT_{pt_bin[0]}_{pt_bin[1]}_signal.parquet.gzip")
-        test_set_df_bkg.to_parquet(f"{out_dir}/{self.channel}_ModelApplied" f"_pT_{pt_bin[0]}_{pt_bin[1]}_bkg.parquet.gzip")
+        if len(self.labels) <= 2:
+            suffixes = ["bkg", "signal"]
+        else:
+            suffixes = self.labels
+        for i_label, suffix in enumerate(suffixes):
+            test_set_df[test_set_df["Labels"] == i_label].to_parquet(
+                f"{out_dir}/{self.channel}_ModelApplied_pT_{pt_bin[0]}_{pt_bin[1]}_{suffix}.parquet.gzip"
+            )
 
         # save model
         if os.path.isfile(f"{out_dir}/ModelHandler_{self.channel}.pickle"):
@@ -400,7 +414,11 @@ class MlTraining(MlCommon):
             model_hdl, train_test_data, 80, self.raw_output, self.labels, True, density=True
         )
         for ext in self.extension:
-            fig_ml_output.savefig(f"{out_dir}/MLOutputDistr_pT_{pt_bin[0]}_{pt_bin[1]}.{ext}")
+            if isinstance(fig_ml_output, list):
+                for fig, lab in zip(fig_ml_output, self.labels):
+                    fig.savefig(f"{out_dir}/MLOutputDistr_{lab}_pT_{pt_bin[0]}_{pt_bin[1]}.{ext}")
+            else:
+                fig_ml_output.savefig(f"{out_dir}/MLOutputDistr_pT_{pt_bin[0]}_{pt_bin[1]}.{ext}")
         # _____________________________________________
         plt.rcParams["figure.figsize"] = (10, 9)
         fig_roc_curve = plot_utils.plot_roc(
@@ -432,15 +450,14 @@ class MlTraining(MlCommon):
         fig_feat_importance = plot_utils.plot_feature_imp(
             train_test_data[2][train_test_data[0].columns], train_test_data[3], model_hdl, self.labels
         )
-        n_plot = 1
-        for i_fig, fig in enumerate(fig_feat_importance):
-            if i_fig < n_plot:
-                lab = ""
-                for ext in self.extension:
-                    fig.savefig(f"{out_dir}/FeatureImportance_{lab}_{self.channel}.{ext}")
-            else:
-                for ext in self.extension:
-                    fig.savefig(f"{out_dir}/FeatureImportanceAll_{self.channel}.{ext}")
+        if len(self.labels) <= 2:
+            fig_names = [f"FeatureImportance_{self.channel}"]
+        else:
+            fig_names = [f"FeatureImportance_{lab}_{self.channel}" for lab in self.labels]
+        fig_names.append(f"FeatureImportanceAll_{self.channel}")
+        for fig, fig_name in zip(fig_feat_importance, fig_names):
+            for ext in self.extension:
+                fig.savefig(f"{out_dir}/{fig_name}.{ext}")
 
     def process(self):
         """
@@ -449,7 +466,7 @@ class MlTraining(MlCommon):
         """
 
         self.__check_input_consistency()
-        df_bkg, df_sig = self.__get_sliced_dfs()
+        dfs = self.__get_sliced_dfs()
 
         for i_pt, pt_bin in enumerate(self.pt_bins):
             print(f"\n\033[94mStarting ML analysis --- {pt_bin[0]} < pT < {pt_bin[1]} GeV/c\033[0m")
@@ -470,8 +487,9 @@ class MlTraining(MlCommon):
             else:
                 bkg_factor = None
 
+            sliced_dfs = {label: df.get_slice(i_pt) for label, df in dfs.items()}
             train_test_data = self.__data_prep(
-                df_bkg.get_slice(i_pt), df_sig.get_slice(i_pt), pt_bin, out_dir_pt, bkg_factor
+                sliced_dfs, pt_bin, out_dir_pt, bkg_factor
             )
             self.__train_test(train_test_data, self.hyper_pars[i_pt], pt_bin, out_dir_pt)
 
@@ -545,6 +563,7 @@ class MlApplication(MlCommon):
         for infile_name, data_tag in zip(self.infile_names, self.data_tags):
             print(f"Loading and preparing data file {infile_name}: ...", end="\r")
             hdl_data = TreeHandler(file_name=infile_name, tree_name=self.tree_name, folder_name=self.folder_name)
+            cols_to_merge = []
             if self.merge_mc_with_check_decay:
                 try:
                     hdl_data_check_decay = TreeHandler(
@@ -579,7 +598,13 @@ class MlApplication(MlCommon):
                 ypred = model_hdls[ibin].predict(df_data_pt_sel, False)
 
                 df_data_pt_sel = df_data_pt_sel.loc[:, self.column_to_save_list + cols_to_merge]
-                df_data_pt_sel["ML_output"] = ypred
+                if ypred.ndim == 2:
+                    # Multi-class
+                    for i_label, label in enumerate(self.labels):
+                        df_data_pt_sel[f"ML_output_{label}"] = ypred[:, i_label]
+                else:
+                    # Binary
+                    df_data_pt_sel["ML_output"] = ypred
 
                 outfile_name = f"{out_dir}/{data_tag}_{self.channel}_pT_{pt_bin[0]}_{pt_bin[1]}_ModelApplied"
                 outfile_name_root = outfile_name + ".root"

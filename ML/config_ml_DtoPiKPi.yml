@@ -1,0 +1,161 @@
+---
+common:
+  channel: B0ToDPi
+  labels: [Bkg, Prompt, FD]  # background class should be first
+  name_pt_var: fPt # name of pT branch in original TTree
+  pt_bins_limits: [2, 4, 6, 8, 12, 24]
+  tree_name: O2hfcanddplite
+  folder_name: DF*
+  column_to_save_list: ["fPt", "fM", "fFlagMcMatchRec"]
+
+train_ml:
+  input:
+    Bkg: [
+      /home/fchinu/Run3/B0_PbPb/inputs/data/LHC25_pass1/AO2D_LHC25_pass1_020_small.root
+    ]
+    Prompt: [
+      /home/fchinu/Run3/B0_PbPb/inputs/mc/LHC24h1b/AO2D_LHC24h1b.root
+    ]
+    FD: [
+      /home/fchinu/Run3/B0_PbPb/inputs/mc/LHC24i4/AO2D_LHC24i4.root
+    ]
+
+  query:
+    common: fCandidateSelFlag == 7 and fNSigTpcTofPi0 < 50 and fNSigTpcTofKa1 < 50 and fNSigTpcTofPi2 < 50 and fDecayLength < 2
+    Bkg: (fM < 1.81 or fM > 1.95)
+    Prompt: fOriginMcRec == 1 and not (fPt > 5 and (fM < 1.65 or fM > 2.2))
+    FD: fPdgBhadMotherPart == 2 and not (fPt > 5 and (fM < 1.65 or fM > 2.2))
+
+  pt_bins_limits: null  # to override common pt binning; set to null else
+
+  downsample_bkg_factor: 1 # value of downSampleBkgFactor set at TTree creation level
+
+  seed_split: 42 # seed used for df_bkg sampling and train_test_split(...)
+  class_balance:
+    share: equal # change how the dataset is built, options available: 'equal', 'all_signal'
+    # 'equal' -> same number of signal/bkg (not using all the signal available)
+    # 'all_signal' -> try to use all the signal + add n_bkg = bkg_factor * n_signal
+    bkg_factor: [1.] # list of multipliers for n_signal used to determine n_cand_bkg in the 'all_signal' option
+  test_fraction: 0.2
+
+  training:
+    raw_output: false
+    roc_auc_approach: ovo
+    roc_auc_average: macro
+    training_vars:
+      [
+        fCpa,
+        fCpaXY,
+        fDecayLength,
+        fDecayLengthXY,
+        fDecayLengthNormalised,
+        fDecayLengthXYNormalised,
+        fChi2PCA,
+        fNSigTpcTofPi0,
+        fNSigTpcTofKa1,
+        fNSigTpcTofPi2,
+        fImpactParameter0,
+        fImpactParameter1,
+        fImpactParameter2,
+        fImpactParameterZ0,
+        fImpactParameterZ1,
+        fImpactParameterZ2
+      ]
+    hyper_pars: [
+      # {
+      #   "max_depth": 6,
+      #   "learning_rate": 0.045,
+      #   "n_estimators": 1200,
+      #   "min_child_weight": 4,
+      #   "n_jobs": 4,
+      #   "tree_method": hist,
+      # },
+      {
+        "max_depth": 6,
+        "learning_rate": 0.045,
+        "n_estimators": 1200,
+        "min_child_weight": 4,
+        "n_jobs": 4,
+        "tree_method": hist,
+      },
+      {
+        "max_depth": 6,
+        "learning_rate": 0.045,
+        "n_estimators": 1200,
+        "min_child_weight": 4,
+        "n_jobs": 4,
+        "tree_method": hist,
+      },
+      {
+        "max_depth": 6,
+        "learning_rate": 0.045,
+        "n_estimators": 1200,
+        "min_child_weight": 4,
+        "n_jobs": 4,
+        "tree_method": hist,
+      },
+      {
+        "max_depth": 6,
+        "learning_rate": 0.045,
+        "n_estimators": 1200,
+        "min_child_weight": 4,
+        "n_jobs": 4,
+        "tree_method": hist,
+      },
+      {
+        "max_depth": 6,
+        "learning_rate": 0.045,
+        "n_estimators": 1200,
+        "min_child_weight": 4,
+        "n_jobs": 4,
+        "tree_method": hist,
+      },
+    ]
+
+    hyper_pars_opt:
+      activate: true
+      ntrials: 25
+      njobs: 4
+      timeout: 1800
+      hyper_par_ranges:
+        {
+          "max_depth": !!python/tuple [2, 6],
+          "learning_rate": !!python/tuple [0.003, 0.06],
+          "n_estimators": !!python/tuple [400, 2000],
+          "min_child_weight": !!python/tuple [4, 8],
+          "subsample": !!python/tuple [0.5, 1],
+          "colsample_bytree": !!python/tuple [0.5, 1]
+        }
+
+  output:
+    dir: ML/training/3sigma_pid_cuts
+    log_file: log.txt # name of log file for each model training
+    # list of variables saved in the dataframes with the applied models
+    
+
+  plots:
+    extra_columns: ["fPt", "fM"] # list of variables to plot (on top of the training ones)
+    extension: ["pdf", "png"] # extension of files containing saved plots
+
+
+apply_ml:
+  input:
+    file_names: [ 
+      derived_data_analysis/Tree_LHC24i3.root,
+      derived_data_analysis/Tree_LHC24i4_1.root,
+      derived_data_analysis/Tree_LHC23_pass4_skimmed.root,
+      derived_data_analysis/Tree_LHC24_pass1_skimmed_1.root
+    ]
+    model_names: ["ML/training/pt0_6/ModelHandler_B0ToDPi_pT_0_6.pickle",
+                  "ML/training/pt6_100/ModelHandler_B0ToDPi_pT_6_100.pickle"]
+    merge_mc_with_check_decay: true
+    tree_name_check_decay: "O2hfredb0mccheck"
+  output:
+    dir: ML/application
+    tree_name: treeB0
+    data_tags: [
+                  LHC24i3,
+                  LHC24i4,
+                  LHC23,
+                  LHC24
+               ]
